@@ -1392,9 +1392,7 @@ export default function App() {
       difficulty: typeof mainObj.difficulty === 'number' ? mainObj.difficulty : (tournamentDifficulty || 2),
       status: mainObj.status || 'active',
       seasonId: mainObj.seasonId || (tournamentSeasonId || '').trim() || null,
-      topicLabel: mainObj.topicLabel || ((Array.isArray(mainObj.topics) && mainObj.topics.length) ? String(mainObj.topics[0]) : null),
-      explanation: mainObj.explanation || null,
-      timeLimitSeconds: mainObj.timeLimitSeconds || 15
+      topicLabel: mainObj.topicLabel || ((Array.isArray(mainObj.topics) && mainObj.topics.length) ? String(mainObj.topics[0]) : null)
     };
 
     if (resolvedType === 'TRUE_FALSE') {
@@ -1659,7 +1657,6 @@ export default function App() {
         tPayload.difficulty = tDiff;
         tPayload.sourcePath = `${resolvedCategory}/${level}/questions/${qId}`;
         tPayload.sourceVersion = Number(tPayload.sourceVersion) || 1;
-        tPayload.explanation = tPayload.explanation || questionData.explanation || null;
 
         try {
           if (!authInstance) throw new Error('Firebase Auth не ініціалізовано.');

@@ -14,7 +14,6 @@ export interface TournamentQuestionPayload {
   status: string;
   seasonId: string | null;
   topicLabel: string | null;
-  explanation: string | null;
   sourcePath: string;
   sourceVersion: number;
   answers?: string[];

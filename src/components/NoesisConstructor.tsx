@@ -778,8 +778,6 @@ export default function NoesisConstructor({
   const [tournamentStatus, setTournamentStatus] = useState<string>(() => getStorageItem('noesis_tournament_status', 'active'));
   const [tournamentEnabledState, setTournamentEnabledState] = useState<boolean>(() => getStorageItem('noesis_tournament_enabled_state', 'true') === 'true');
   const [tournamentTopicLabel, setTournamentTopicLabel] = useState<string>(() => getStorageItem('noesis_tournament_topic_label', ''));
-  const [tournamentExplanation, setTournamentExplanation] = useState<string>(() => getStorageItem('noesis_tournament_explanation', ''));
-  const [tournamentTimeLimit, setTournamentTimeLimit] = useState<string>(() => getStorageItem('noesis_tournament_time_limit', '30'));
   const [tournamentSourceVersion, setTournamentSourceVersion] = useState<number>(() => Number(getStorageItem('noesis_tournament_source_version', '1')));
   const [tournamentSchemaVersion, setTournamentSchemaVersion] = useState<number>(() => Number(getStorageItem('noesis_tournament_schema_version', '1')));
 
@@ -834,14 +832,6 @@ export default function NoesisConstructor({
   useEffect(() => {
     setStorageItem('noesis_tournament_topic_label', tournamentTopicLabel);
   }, [tournamentTopicLabel]);
-
-  useEffect(() => {
-    setStorageItem('noesis_tournament_explanation', tournamentExplanation);
-  }, [tournamentExplanation]);
-
-  useEffect(() => {
-    setStorageItem('noesis_tournament_time_limit', tournamentTimeLimit);
-  }, [tournamentTimeLimit]);
 
   useEffect(() => {
     setStorageItem('noesis_tournament_source_version', String(tournamentSourceVersion));
@@ -1078,7 +1068,6 @@ export default function NoesisConstructor({
       // 4. Pre-populate the tournament mirror for every source type.
       setTournamentQuestion(questionData.question || '');
       setTournamentTopicLabel(Array.isArray(questionData.topics) ? questionData.topics[0] || '' : '');
-      setTournamentExplanation(questionData.explanation || '');
       setSaveToTournament(false);
 
       if (isNativeTournamentQuestionType(qType)) {
@@ -1458,11 +1447,9 @@ export default function NoesisConstructor({
   const handlePrepareTournamentDraft = () => {
       const tType = resolveTournamentQuestionType(questionType);
       const finalQText = questionText.trim() || 'Текст турнірного питання';
-      const finalExp = explanation.trim() || '';
       const finalTopic = topicTitle.trim() || '';
 
       setTournamentQuestion(finalQText);
-      setTournamentExplanation(finalExp);
       setTournamentTopicLabel(finalTopic);
       setTournamentCategoryId(quizCategory || 'science');
       setTournamentDifficulty(tournamentDifficulty || 2);
@@ -1588,12 +1575,6 @@ export default function NoesisConstructor({
         return;
       }
 
-      const finalExplanation = tournamentExplanation.trim() || explanation.trim() || null;
-      if (finalExplanation && finalExplanation.length > 2000) {
-        triggerToast('Пояснення для турніру не повинно перевищувати 2000 символів!', 'error');
-        return;
-      }
-
       const finalTopicLabel = tournamentTopicLabel.trim() || null;
       if (finalTopicLabel && finalTopicLabel.length > 100) {
         triggerToast('Тема/Топік для турніру не повинна перевищувати 100 символів!', 'error');
@@ -1627,7 +1608,6 @@ export default function NoesisConstructor({
         status: tournamentStatus || 'active',
         seasonId: finalSeasonId,
         topicLabel: finalTopicLabel,
-        explanation: finalExplanation,
         sourcePath,
         sourceVersion: sVer
       };
@@ -1742,8 +1722,6 @@ export default function NoesisConstructor({
       'noesis_tournament_status',
       'noesis_tournament_enabled_state',
       'noesis_tournament_topic_label',
-      'noesis_tournament_explanation',
-      'noesis_tournament_time_limit',
       'noesis_tournament_source_version',
       'noesis_tournament_schema_version',
       'noesis_use_main_answers',
@@ -1767,8 +1745,6 @@ export default function NoesisConstructor({
     setTournamentStatus('active');
     setTournamentEnabledState(true);
     setTournamentTopicLabel('');
-    setTournamentExplanation('');
-    setTournamentTimeLimit('30');
     setTournamentSourceVersion(1);
     setTournamentSchemaVersion(1);
     setUseMainAnswers(true);
@@ -5459,17 +5435,6 @@ export default function NoesisConstructor({
                           Завжди активна для пулу
                         </div>
                       </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">💡 Коротке пояснення (explanation)</label>
-                      <textarea
-                        rows={1}
-                        value={tournamentExplanation}
-                        onChange={e => setTournamentExplanation(e.target.value)}
-                        placeholder="Коротке пояснення після відповіді (залиште порожнім щоб використати головне пояснення)..."
-                        className="bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs focus:bg-white focus:ring-1 focus:ring-amber-500 outline-none"
-                      />
                     </div>
 
                     {/* Version settings */}
