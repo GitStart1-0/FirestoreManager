@@ -507,6 +507,11 @@ export default function App() {
   });
   const [singleQuestionJson, setSingleQuestionJson] = useState<string>('');
   const [singleQuestionImporting, setSingleQuestionImporting] = useState(false);
+  const [singleImportResult, setSingleImportResult] = useState<{
+    mainQuestionId?: string;
+    tournamentQuestionId?: string;
+    tournamentError?: string;
+  } | null>(null);
 
   // Active Screen Tab
   const [activeTab, setActiveTab] = useState<'explorer' | 'constructor' | 'import' | 'credentials'>('constructor');
@@ -1533,6 +1538,7 @@ export default function App() {
     }
 
     setSingleQuestionImporting(true);
+    setSingleImportResult(null);
     try {
       const parseRes = robustParseJson(singleQuestionJson.trim());
       if (!parseRes.data) {
@@ -1622,6 +1628,8 @@ export default function App() {
 
       // 3. Save into Tournament collection (tournamentQuestionPools) if enabled
       let tournamentSaved = false;
+      let tournamentQuestionId: string | undefined;
+      let tournamentErrorMessage: string | undefined;
       if (saveSingleToTournament) {
         let tPayload: any = null;
         if (singleTournamentJson.trim()) {
@@ -1655,19 +1663,31 @@ export default function App() {
 
         try {
           if (!authInstance) throw new Error('Firebase Auth не ініціалізовано.');
-          await publishTournamentQuestion(authInstance, tPayload);
+          const result = await publishTournamentQuestion(authInstance, tPayload);
           tournamentSaved = true;
+          tournamentQuestionId = result.questionId;
         } catch (tournamentError: any) {
           console.error('Tournament publication failed:', tournamentError);
-          triggerToast(
-            `Основне питання збережено, але турнірну версію не опубліковано: ${tournamentError.message}`,
-            'error'
-          );
+          tournamentErrorMessage = tournamentError?.message || 'Невідома помилка публікації турнірного питання.';
         }
       }
 
+      setSingleImportResult({
+        mainQuestionId: qId,
+        tournamentQuestionId,
+        tournamentError: tournamentErrorMessage
+      });
+
       if (tournamentSaved) {
-        triggerToast(`Питання успішно імпортовано в Noesis (${qId}) та Турніри (tournamentQuestionPools)!`, 'success');
+        triggerToast(
+          `Основне питання (${qId}) і турнірна копія (${tournamentQuestionId}) успішно збережені.`,
+          'success'
+        );
+      } else if (tournamentErrorMessage) {
+        triggerToast(
+          `Основне питання збережено, але турнірну копію не опубліковано: ${tournamentErrorMessage}`,
+          'error'
+        );
       } else {
         triggerToast(`Питання успішно імпортовано! ID: ${qId}`, 'success');
       }
@@ -1701,6 +1721,7 @@ export default function App() {
     }
 
     setSingleTournamentImporting(true);
+    setSingleImportResult(null);
     try {
       let tPayload: any = null;
       let qId = '';
@@ -1761,13 +1782,20 @@ export default function App() {
       if (!authInstance) throw new Error('Firebase Auth не ініціалізовано.');
       const result = await publishTournamentQuestion(authInstance, tPayload);
 
-      triggerToast(`Успішно опубліковано турнірне питання: ${result.questionId}!`, 'success');
+      setSingleImportResult({ tournamentQuestionId: result.questionId });
+      triggerToast(
+        `Турнірне питання збережено: tournamentQuestionPools/${result.questionId}`,
+        'success'
+      );
 
       if (activeCol === 'tournamentQuestionPools') {
         fetchDocuments();
       }
     } catch (err: any) {
       console.error('Error importing tournament question directly:', err);
+      const message = err?.message || 'Невідома помилка публікації турнірного питання.';
+      setSingleImportResult({ tournamentError: message });
+      triggerToast(`Турнірне питання не збережено: ${message}`, 'error');
       handleFirestoreError(err, OperationType.WRITE, `tournamentQuestionPools`, authInstance);
     } finally {
       setSingleTournamentImporting(false);
@@ -4035,6 +4063,40 @@ service cloud.firestore {
                         )}
                       </button>
                     </div>
+
+                    {singleImportResult && (
+                      <div
+                        className={`rounded-xl border p-3 text-xs leading-relaxed ${
+                          singleImportResult.tournamentError
+                            ? 'border-rose-200 bg-rose-50 text-rose-900'
+                            : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                        }`}
+                      >
+                        {singleImportResult.mainQuestionId && (
+                          <div>
+                            <strong>Основне питання:</strong>{' '}
+                            <code className="break-all">
+                              {singleQuestionLang === 'ua' ? importTarget : `${importTarget}_${singleQuestionLang}`}/
+                              {singleQuestionLevel}/questions/{singleImportResult.mainQuestionId}
+                            </code>
+                          </div>
+                        )}
+                        {singleImportResult.tournamentQuestionId && (
+                          <div className="mt-1">
+                            <strong>Турнірне питання:</strong>{' '}
+                            <code className="break-all">
+                              tournamentQuestionPools/{singleImportResult.tournamentQuestionId}
+                            </code>
+                          </div>
+                        )}
+                        {singleImportResult.tournamentError && (
+                          <div className="mt-1">
+                            <strong>Турнірна копія не записана:</strong>{' '}
+                            {singleImportResult.tournamentError}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
