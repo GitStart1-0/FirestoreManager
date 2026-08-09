@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    text-size-adjust: 100%;
+  }
+
+  body {
+    min-width: 320px;
+    overflow-x: hidden;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+  }
+}
+
+@layer components {
+  /* Constructor forms contain long bilingual labels, IDs and Firebase paths. */
+  .constructor-shell,
+  .constructor-shell * {
+    min-width: 0;
+  }
+
+  .constructor-shell p,
+  .constructor-shell label,
+  .constructor-shell h1,
+  .constructor-shell h2,
+  .constructor-shell h3,
+  .constructor-shell h4,
+  .constructor-shell li,
+  .constructor-shell code {
+    overflow-wrap: anywhere;
+  }
+
+  .constructor-shell button {
+    white-space: normal;
+    text-wrap: balance;
+  }
+
+  .constructor-shell input,
+  .constructor-shell select,
+  .constructor-shell textarea {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .constructor-shell textarea {
+    field-sizing: content;
+    min-height: 5.5rem;
+  }
+
+  .constructor-shell pre,
+  .constructor-shell table {
+    max-width: 100%;
+  }
+
+  .constructor-shell pre {
+    overflow-x: auto;
+  }
+
+  @media (max-width: 639px) {
+    .constructor-shell {
+      gap: 1rem;
+    }
+
+    .constructor-shell .grid.grid-cols-2:not(.constructor-mode-switch),
+    .constructor-shell .grid.grid-cols-3:not(.constructor-mode-switch),
+    .constructor-shell .grid.grid-cols-4:not(.constructor-mode-switch) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .constructor-mode-switch button {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+      font-size: 0.6875rem;
+    }
+
+    .constructor-shell .w-1\/2,
+    .constructor-shell .w-2\/3 {
+      width: 100%;
+    }
+
+    .constructor-shell .p-5,
+    .constructor-shell .p-6,
+    .constructor-shell .p-8 {
+      padding: 1rem;
+    }
+
+    .constructor-shell .px-6,
+    .constructor-shell .px-8 {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    .constructor-shell .flex.items-center.justify-between {
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+  }
+}

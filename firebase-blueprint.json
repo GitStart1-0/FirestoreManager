@@ -1,0 +1,25 @@
+{
+  "entities": {
+    "connection": {
+      "title": "Firebase Connection",
+      "description": "Metadata for an imported or local Firestore connection config",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "projectId": { "type": "string" },
+        "apiKey": { "type": "string" },
+        "authDomain": { "type": "string" },
+        "firestoreDatabaseId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "projectId", "apiKey"]
+    }
+  },
+  "firestore": {
+    "/connections": {
+      "schema": "connection",
+      "description": "Saved Firestore collection connections definitions"
+    }
+  }
+}
