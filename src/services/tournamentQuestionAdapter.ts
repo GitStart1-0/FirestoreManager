@@ -5,6 +5,8 @@ export const TOURNAMENT_NATIVE_QUESTION_TYPES = [
   'TEXT_INPUT'
 ] as const;
 
+export const TOURNAMENT_MAX_OPTION_LENGTH = 120;
+
 export type TournamentQuestionType = typeof TOURNAMENT_NATIVE_QUESTION_TYPES[number];
 
 export function isNativeTournamentQuestionType(
@@ -140,4 +142,3 @@ export function validateTournamentIndices(
 export function sanitizeTournamentIndices(answersCount: number, indices: number[]): number[] {
   return indices.filter(idx => idx >= 0 && idx < answersCount);
 }
-

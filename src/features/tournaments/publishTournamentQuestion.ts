@@ -1,6 +1,9 @@
 import { Auth } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import type { TournamentQuestionType } from '../../services/tournamentQuestionAdapter';
+import {
+  TOURNAMENT_MAX_OPTION_LENGTH,
+  type TournamentQuestionType
+} from '../../services/tournamentQuestionAdapter';
 
 export interface TournamentQuestionPayload {
   language: string;
@@ -38,6 +41,19 @@ export async function publishTournamentQuestion(
 ): Promise<TournamentPublishResult> {
   if (!auth.currentUser) {
     throw new Error('Увійдіть у дозволений обліковий запис конструктора.');
+  }
+
+  if (payload.type === 'SINGLE_CHOICE' || payload.type === 'MULTIPLE_CHOICE') {
+    const answers = payload.answers ?? [];
+    if (answers.length < 2 || answers.length > 6) {
+      throw new Error('Турнірне питання повинно містити від 2 до 6 варіантів відповіді.');
+    }
+    const oversizedIndex = answers.findIndex(answer => answer.length > TOURNAMENT_MAX_OPTION_LENGTH);
+    if (oversizedIndex >= 0) {
+      throw new Error(
+        `Варіант ${oversizedIndex + 1} перевищує ліміт ${TOURNAMENT_MAX_OPTION_LENGTH} символів.`
+      );
+    }
   }
 
   const callable = httpsCallable<TournamentQuestionPayload, TournamentPublishResult>(
