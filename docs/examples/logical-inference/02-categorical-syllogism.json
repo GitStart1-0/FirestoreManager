@@ -1,0 +1,136 @@
+{
+  "type": "LOGICAL_INFERENCE",
+  "lang": "ua",
+  "number": 2,
+  "block": "A",
+  "question": "Завершіть категоричний силогізм правильним висновком.",
+  "schemaVersion": 1,
+  "engineVersion": 1,
+  "contentVersion": 1,
+  "logicSystem": "TRADITIONAL_SYLLOGISTIC",
+  "inferenceFamily": "CATEGORICAL",
+  "vocabulary": [
+    { "id": "mammal", "label": "ссавець", "kind": "PREDICATE", "arity": 1 },
+    { "id": "warm_blooded", "label": "теплокровний", "kind": "PREDICATE", "arity": 1 },
+    { "id": "whale", "label": "кит", "kind": "PREDICATE", "arity": 1 },
+    { "id": "reptile", "label": "плазун", "kind": "PREDICATE", "arity": 1 },
+    { "id": "x", "label": "x", "kind": "VARIABLE", "arity": 0 }
+  ],
+  "premises": [
+    {
+      "id": "p1",
+      "text": "Усі ссавці теплокровні.",
+      "formula": {
+        "kind": "FOR_ALL",
+        "children": [
+          { "kind": "SYMBOL", "value": "x" },
+          {
+            "kind": "IMPLIES",
+            "children": [
+              { "kind": "PREDICATE", "children": [{ "kind": "SYMBOL", "value": "mammal" }, { "kind": "SYMBOL", "value": "x" }] },
+              { "kind": "PREDICATE", "children": [{ "kind": "SYMBOL", "value": "warm_blooded" }, { "kind": "SYMBOL", "value": "x" }] }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "p2",
+      "text": "Усі кити є ссавцями.",
+      "formula": {
+        "kind": "FOR_ALL",
+        "children": [
+          { "kind": "SYMBOL", "value": "x" },
+          {
+            "kind": "IMPLIES",
+            "children": [
+              { "kind": "PREDICATE", "children": [{ "kind": "SYMBOL", "value": "whale" }, { "kind": "SYMBOL", "value": "x" }] },
+              { "kind": "PREDICATE", "children": [{ "kind": "SYMBOL", "value": "mammal" }, { "kind": "SYMBOL", "value": "x" }] }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "conclusionBuilder": {
+    "presentation": "CATEGORICAL",
+    "slots": [
+      {
+        "id": "subject_class",
+        "label": "Клас-суб'єкт",
+        "type": "PREDICATE",
+        "options": [
+          { "id": "whale", "label": "кити", "expression": { "kind": "SYMBOL", "value": "whale" } },
+          { "id": "mammal", "label": "ссавці", "expression": { "kind": "SYMBOL", "value": "mammal" } },
+          { "id": "reptile", "label": "плазуни", "expression": { "kind": "SYMBOL", "value": "reptile" } }
+        ]
+      },
+      {
+        "id": "predicate_class",
+        "label": "Клас-предикат",
+        "type": "PREDICATE",
+        "options": [
+          { "id": "warm_blooded", "label": "теплокровні", "expression": { "kind": "SYMBOL", "value": "warm_blooded" } },
+          { "id": "mammal", "label": "ссавці", "expression": { "kind": "SYMBOL", "value": "mammal" } },
+          { "id": "whale", "label": "кити", "expression": { "kind": "SYMBOL", "value": "whale" } }
+        ]
+      }
+    ],
+    "resultTemplate": {
+      "kind": "FOR_ALL",
+      "children": [
+        { "kind": "SYMBOL", "value": "x" },
+        {
+          "kind": "IMPLIES",
+          "children": [
+            { "kind": "PREDICATE", "children": [{ "kind": "SLOT_REF", "value": "subject_class" }, { "kind": "SYMBOL", "value": "x" }] },
+            { "kind": "PREDICATE", "children": [{ "kind": "SLOT_REF", "value": "predicate_class" }, { "kind": "SYMBOL", "value": "x" }] }
+          ]
+        }
+      ]
+    },
+    "textTemplate": "Усі {subject_class} є {predicate_class}."
+  },
+  "answerPolicy": { "allowNoValidConclusion": false },
+  "expectedAnswer": {
+    "kind": "CONCLUSION",
+    "formula": {
+      "kind": "FOR_ALL",
+      "children": [
+        { "kind": "SYMBOL", "value": "x" },
+        {
+          "kind": "IMPLIES",
+          "children": [
+            { "kind": "PREDICATE", "children": [{ "kind": "SYMBOL", "value": "whale" }, { "kind": "SYMBOL", "value": "x" }] },
+            { "kind": "PREDICATE", "children": [{ "kind": "SYMBOL", "value": "warm_blooded" }, { "kind": "SYMBOL", "value": "x" }] }
+          ]
+        }
+      ]
+    }
+  },
+  "misconceptions": [
+    {
+      "id": "invalid-conversion",
+      "type": "INVALID_CONVERSION",
+      "formula": {
+        "kind": "FOR_ALL",
+        "children": [
+          { "kind": "SYMBOL", "value": "x" },
+          {
+            "kind": "IMPLIES",
+            "children": [
+              { "kind": "PREDICATE", "children": [{ "kind": "SYMBOL", "value": "mammal" }, { "kind": "SYMBOL", "value": "x" }] },
+              { "kind": "PREDICATE", "children": [{ "kind": "SYMBOL", "value": "whale" }, { "kind": "SYMBOL", "value": "x" }] }
+            ]
+          }
+        ]
+      },
+      "feedback": "Із того, що всі кити є ссавцями, не випливає, що всі ссавці є китами."
+    }
+  ],
+  "explanation": "Клас китів входить до класу ссавців, а клас ссавців - до класу теплокровних тварин. Тому всі кити теплокровні.",
+  "topics": ["категоричний силогізм", "включення класів"],
+  "scientificDisciplines": ["logic"],
+  "recommendedLiterature": [],
+  "literatureHiddenAtStart": false
+}

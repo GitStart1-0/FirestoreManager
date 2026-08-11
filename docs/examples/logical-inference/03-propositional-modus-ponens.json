@@ -1,0 +1,76 @@
+{
+  "type": "LOGICAL_INFERENCE",
+  "lang": "ua",
+  "number": 3,
+  "block": "A",
+  "question": "Який висновок отримуємо за правилом modus ponens?",
+  "schemaVersion": 1,
+  "engineVersion": 1,
+  "contentVersion": 1,
+  "logicSystem": "CLASSICAL_PROPOSITIONAL",
+  "inferenceFamily": "PROPOSITIONAL",
+  "vocabulary": [
+    { "id": "verified", "label": "Гіпотезу підтверджено перевіркою", "kind": "PROPOSITION", "arity": 0 },
+    { "id": "accepted", "label": "Результат прийнято", "kind": "PROPOSITION", "arity": 0 },
+    { "id": "published", "label": "Результат опубліковано", "kind": "PROPOSITION", "arity": 0 }
+  ],
+  "premises": [
+    {
+      "id": "p1",
+      "text": "Якщо гіпотезу підтверджено перевіркою, то результат прийнято.",
+      "formula": {
+        "kind": "IMPLIES",
+        "children": [
+          { "kind": "SYMBOL", "value": "verified" },
+          { "kind": "SYMBOL", "value": "accepted" }
+        ]
+      }
+    },
+    {
+      "id": "p2",
+      "text": "Гіпотезу підтверджено перевіркою.",
+      "formula": { "kind": "SYMBOL", "value": "verified" }
+    }
+  ],
+  "conclusionBuilder": {
+    "presentation": "PROPOSITIONAL",
+    "slots": [
+      {
+        "id": "conclusion",
+        "label": "Висновок",
+        "type": "PROPOSITION",
+        "options": [
+          { "id": "accepted", "label": "Результат прийнято", "expression": { "kind": "SYMBOL", "value": "accepted" } },
+          { "id": "verified", "label": "Гіпотезу підтверджено перевіркою", "expression": { "kind": "SYMBOL", "value": "verified" } },
+          { "id": "published", "label": "Результат опубліковано", "expression": { "kind": "SYMBOL", "value": "published" } }
+        ]
+      }
+    ],
+    "resultTemplate": { "kind": "SLOT_REF", "value": "conclusion" },
+    "textTemplate": "{conclusion}."
+  },
+  "answerPolicy": { "allowNoValidConclusion": false },
+  "expectedAnswer": {
+    "kind": "CONCLUSION",
+    "formula": { "kind": "SYMBOL", "value": "accepted" }
+  },
+  "misconceptions": [
+    {
+      "id": "premise-repetition",
+      "type": "PREMISE_REPETITION",
+      "formula": { "kind": "SYMBOL", "value": "verified" },
+      "feedback": "Це повторення другого засновку. Modus ponens дає наслідок умовного твердження."
+    },
+    {
+      "id": "unsupported-extra-step",
+      "type": "UNSUPPORTED_CONCLUSION",
+      "formula": { "kind": "SYMBOL", "value": "published" },
+      "feedback": "Про публікацію у засновках нічого не сказано, тому такий висновок потребує додаткового правила."
+    }
+  ],
+  "explanation": "Із тверджень «якщо P, то Q» та «P» за правилом modus ponens випливає Q.",
+  "topics": ["modus ponens", "пропозиційна логіка"],
+  "scientificDisciplines": ["logic"],
+  "recommendedLiterature": [],
+  "literatureHiddenAtStart": false
+}

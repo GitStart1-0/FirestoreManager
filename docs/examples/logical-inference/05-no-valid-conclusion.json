@@ -1,0 +1,73 @@
+{
+  "type": "LOGICAL_INFERENCE",
+  "lang": "ua",
+  "number": 5,
+  "block": "A",
+  "question": "Чи випливає однозначний висновок із наведених засновків?",
+  "schemaVersion": 1,
+  "engineVersion": 1,
+  "contentVersion": 1,
+  "logicSystem": "CLASSICAL_PROPOSITIONAL",
+  "inferenceFamily": "PROPOSITIONAL",
+  "vocabulary": [
+    { "id": "testable", "label": "Теорія перевірювана", "kind": "PROPOSITION", "arity": 0 },
+    { "id": "scientific", "label": "Теорія наукова", "kind": "PROPOSITION", "arity": 0 },
+    { "id": "true_theory", "label": "Теорія істинна", "kind": "PROPOSITION", "arity": 0 }
+  ],
+  "premises": [
+    {
+      "id": "p1",
+      "text": "Якщо теорія перевірювана, то вона наукова.",
+      "formula": {
+        "kind": "IMPLIES",
+        "children": [
+          { "kind": "SYMBOL", "value": "testable" },
+          { "kind": "SYMBOL", "value": "scientific" }
+        ]
+      }
+    },
+    {
+      "id": "p2",
+      "text": "Теорія є науковою.",
+      "formula": { "kind": "SYMBOL", "value": "scientific" }
+    }
+  ],
+  "conclusionBuilder": {
+    "presentation": "PROPOSITIONAL",
+    "slots": [
+      {
+        "id": "candidate",
+        "label": "Можливий висновок",
+        "type": "PROPOSITION",
+        "options": [
+          { "id": "testable", "label": "Теорія перевірювана", "expression": { "kind": "SYMBOL", "value": "testable" } },
+          { "id": "not_testable", "label": "Теорія не перевірювана", "expression": { "kind": "NOT", "children": [{ "kind": "SYMBOL", "value": "testable" }] } },
+          { "id": "true_theory", "label": "Теорія істинна", "expression": { "kind": "SYMBOL", "value": "true_theory" } }
+        ]
+      }
+    ],
+    "resultTemplate": { "kind": "SLOT_REF", "value": "candidate" },
+    "textTemplate": "{candidate}."
+  },
+  "answerPolicy": { "allowNoValidConclusion": true },
+  "expectedAnswer": { "kind": "NO_VALID_CONCLUSION" },
+  "misconceptions": [
+    {
+      "id": "affirming-consequent",
+      "type": "AFFIRMING_THE_CONSEQUENT",
+      "formula": { "kind": "SYMBOL", "value": "testable" },
+      "feedback": "Це помилка підтвердження наслідку: з «якщо P, то Q» і «Q» не випливає P."
+    },
+    {
+      "id": "unsupported-truth",
+      "type": "UNSUPPORTED_CONCLUSION",
+      "formula": { "kind": "SYMBOL", "value": "true_theory" },
+      "feedback": "Науковий статус теорії сам по собі не доводить її істинність."
+    }
+  ],
+  "explanation": "Засновки підтверджують наслідок умовного твердження, але не його підставу. Теорія може бути науковою з інших причин, тому жоден із запропонованих висновків не є необхідним.",
+  "topics": ["підтвердження наслідку", "невалідний висновок"],
+  "scientificDisciplines": ["logic"],
+  "recommendedLiterature": [],
+  "literatureHiddenAtStart": false
+}

@@ -1,0 +1,110 @@
+{
+  "type": "LOGICAL_INFERENCE",
+  "lang": "ua",
+  "number": 4,
+  "block": "A",
+  "question": "Який відношеннєвий висновок випливає з транзитивності?",
+  "schemaVersion": 1,
+  "engineVersion": 1,
+  "contentVersion": 1,
+  "logicSystem": "MODERN_CLASSICAL_FOL_FRAGMENT",
+  "inferenceFamily": "RELATIONAL",
+  "vocabulary": [
+    { "id": "older_than", "label": "старший за", "kind": "RELATION", "arity": 2 },
+    { "id": "anna", "label": "Анна", "kind": "CONSTANT", "arity": 0 },
+    { "id": "bohdan", "label": "Богдан", "kind": "CONSTANT", "arity": 0 },
+    { "id": "clara", "label": "Клара", "kind": "CONSTANT", "arity": 0 }
+  ],
+  "premises": [
+    {
+      "id": "p1",
+      "text": "Анна старша за Богдана.",
+      "formula": {
+        "kind": "PREDICATE",
+        "children": [
+          { "kind": "SYMBOL", "value": "older_than" },
+          { "kind": "SYMBOL", "value": "anna" },
+          { "kind": "SYMBOL", "value": "bohdan" }
+        ]
+      }
+    },
+    {
+      "id": "p2",
+      "text": "Богдан старший за Клару.",
+      "formula": {
+        "kind": "PREDICATE",
+        "children": [
+          { "kind": "SYMBOL", "value": "older_than" },
+          { "kind": "SYMBOL", "value": "bohdan" },
+          { "kind": "SYMBOL", "value": "clara" }
+        ]
+      }
+    }
+  ],
+  "conclusionBuilder": {
+    "presentation": "RELATIONAL",
+    "slots": [
+      {
+        "id": "left_person",
+        "label": "Хто старший",
+        "type": "TERM",
+        "options": [
+          { "id": "anna", "label": "Анна", "expression": { "kind": "SYMBOL", "value": "anna" } },
+          { "id": "bohdan", "label": "Богдан", "expression": { "kind": "SYMBOL", "value": "bohdan" } },
+          { "id": "clara", "label": "Клара", "expression": { "kind": "SYMBOL", "value": "clara" } }
+        ]
+      },
+      {
+        "id": "right_person",
+        "label": "За кого старший",
+        "type": "TERM",
+        "options": [
+          { "id": "clara", "label": "Клару", "expression": { "kind": "SYMBOL", "value": "clara" } },
+          { "id": "bohdan", "label": "Богдана", "expression": { "kind": "SYMBOL", "value": "bohdan" } },
+          { "id": "anna", "label": "Анну", "expression": { "kind": "SYMBOL", "value": "anna" } }
+        ]
+      }
+    ],
+    "resultTemplate": {
+      "kind": "PREDICATE",
+      "children": [
+        { "kind": "SYMBOL", "value": "older_than" },
+        { "kind": "SLOT_REF", "value": "left_person" },
+        { "kind": "SLOT_REF", "value": "right_person" }
+      ]
+    },
+    "textTemplate": "{left_person} старша/старший за {right_person}."
+  },
+  "answerPolicy": { "allowNoValidConclusion": false },
+  "expectedAnswer": {
+    "kind": "CONCLUSION",
+    "formula": {
+      "kind": "PREDICATE",
+      "children": [
+        { "kind": "SYMBOL", "value": "older_than" },
+        { "kind": "SYMBOL", "value": "anna" },
+        { "kind": "SYMBOL", "value": "clara" }
+      ]
+    }
+  },
+  "misconceptions": [
+    {
+      "id": "reversed-relation",
+      "type": "RELATION_REVERSAL",
+      "formula": {
+        "kind": "PREDICATE",
+        "children": [
+          { "kind": "SYMBOL", "value": "older_than" },
+          { "kind": "SYMBOL", "value": "clara" },
+          { "kind": "SYMBOL", "value": "anna" }
+        ]
+      },
+      "feedback": "Відношення «старший за» не є симетричним: перестановка учасників змінює зміст твердження."
+    }
+  ],
+  "explanation": "Відношення «старший за» є транзитивним: якщо Анна старша за Богдана, а Богдан старший за Клару, то Анна старша за Клару.",
+  "topics": ["транзитивність", "логіка відношень"],
+  "scientificDisciplines": ["logic"],
+  "recommendedLiterature": [],
+  "literatureHiddenAtStart": false
+}

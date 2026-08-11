@@ -1,0 +1,122 @@
+{
+  "type": "LOGICAL_INFERENCE",
+  "lang": "ua",
+  "number": 1,
+  "block": "A",
+  "question": "Який висновок логічно випливає із засновків?",
+  "schemaVersion": 1,
+  "engineVersion": 1,
+  "contentVersion": 1,
+  "logicSystem": "MODERN_CLASSICAL_FOL_FRAGMENT",
+  "inferenceFamily": "SINGULAR",
+  "vocabulary": [
+    { "id": "human", "label": "людина", "kind": "PREDICATE", "arity": 1 },
+    { "id": "mortal", "label": "смертний", "kind": "PREDICATE", "arity": 1 },
+    { "id": "socrates", "label": "Сократ", "kind": "CONSTANT", "arity": 0 },
+    { "id": "plato", "label": "Платон", "kind": "CONSTANT", "arity": 0 },
+    { "id": "x", "label": "x", "kind": "VARIABLE", "arity": 0 }
+  ],
+  "premises": [
+    {
+      "id": "p1",
+      "text": "Усі люди смертні.",
+      "formula": {
+        "kind": "FOR_ALL",
+        "children": [
+          { "kind": "SYMBOL", "value": "x" },
+          {
+            "kind": "IMPLIES",
+            "children": [
+              {
+                "kind": "PREDICATE",
+                "children": [
+                  { "kind": "SYMBOL", "value": "human" },
+                  { "kind": "SYMBOL", "value": "x" }
+                ]
+              },
+              {
+                "kind": "PREDICATE",
+                "children": [
+                  { "kind": "SYMBOL", "value": "mortal" },
+                  { "kind": "SYMBOL", "value": "x" }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "p2",
+      "text": "Сократ - людина.",
+      "formula": {
+        "kind": "PREDICATE",
+        "children": [
+          { "kind": "SYMBOL", "value": "human" },
+          { "kind": "SYMBOL", "value": "socrates" }
+        ]
+      }
+    }
+  ],
+  "conclusionBuilder": {
+    "presentation": "PREDICATION",
+    "slots": [
+      {
+        "id": "subject",
+        "label": "Суб'єкт",
+        "type": "TERM",
+        "options": [
+          { "id": "socrates", "label": "Сократ", "expression": { "kind": "SYMBOL", "value": "socrates" } },
+          { "id": "plato", "label": "Платон", "expression": { "kind": "SYMBOL", "value": "plato" } }
+        ]
+      },
+      {
+        "id": "predicate",
+        "label": "Предикат",
+        "type": "PREDICATE",
+        "options": [
+          { "id": "mortal", "label": "смертний", "expression": { "kind": "SYMBOL", "value": "mortal" } },
+          { "id": "human", "label": "людина", "expression": { "kind": "SYMBOL", "value": "human" } }
+        ]
+      }
+    ],
+    "resultTemplate": {
+      "kind": "PREDICATE",
+      "children": [
+        { "kind": "SLOT_REF", "value": "predicate" },
+        { "kind": "SLOT_REF", "value": "subject" }
+      ]
+    },
+    "textTemplate": "{subject} - {predicate}."
+  },
+  "answerPolicy": { "allowNoValidConclusion": false },
+  "expectedAnswer": {
+    "kind": "CONCLUSION",
+    "formula": {
+      "kind": "PREDICATE",
+      "children": [
+        { "kind": "SYMBOL", "value": "mortal" },
+        { "kind": "SYMBOL", "value": "socrates" }
+      ]
+    }
+  },
+  "misconceptions": [
+    {
+      "id": "repeat-premise",
+      "type": "PREMISE_REPETITION",
+      "formula": {
+        "kind": "PREDICATE",
+        "children": [
+          { "kind": "SYMBOL", "value": "human" },
+          { "kind": "SYMBOL", "value": "socrates" }
+        ]
+      },
+      "feedback": "Це повторення другого засновку, а не новий висновок."
+    }
+  ],
+  "explanation": "Загальне правило стосується кожної людини. Оскільки Сократ є людиною, властивість смертності поширюється і на нього.",
+  "topics": ["дедукція", "одиничний висновок"],
+  "scientificDisciplines": ["logic"],
+  "recommendedLiterature": [],
+  "literatureHiddenAtStart": false
+}

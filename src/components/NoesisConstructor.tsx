@@ -41,7 +41,6 @@ import {
   Eye,
   EyeOff,
   Database,
-  GitFork,
   Send,
   CheckCircle2,
   AlertCircle
@@ -61,10 +60,16 @@ import {
   TournamentQuestionPayload
 } from '../features/tournaments/publishTournamentQuestion';
 import { DISCIPLINARY_GROUPS, DISCIPLINE_MAP } from '../domain/content/disciplines';
+import { ConstructorMode, ConstructorModeTabs } from './ConstructorModeTabs';
 
 const CausalGraphConstructor = lazy(async () => {
   const module = await import('./CausalGraphConstructor');
   return { default: module.CausalGraphConstructor };
+});
+
+const LogicConstructorWorkspace = lazy(async () => {
+  const module = await import('../features/logic/LogicConstructorWorkspace');
+  return { default: module.LogicConstructorWorkspace };
 });
 
 interface NoesisConstructorProps {
@@ -219,7 +224,7 @@ export default function NoesisConstructor({
   const [questionIdName, setQuestionIdName] = useState<string>(() => getStorageItem('noesis_question_id_name', ''));
   
   // Debate Constructor State Mode
-  const [constructorMode, setConstructorMode] = useState<'quiz' | 'debate' | 'causal_graph'>('quiz');
+  const [constructorMode, setConstructorMode] = useState<ConstructorMode>('quiz');
 
   // Debate Topic form states
   const [topicId, setTopicId] = useState('ua--symposium--ethics--can-always-tell-truth');
@@ -2457,48 +2462,7 @@ export default function NoesisConstructor({
 
     return (
       <div className="constructor-shell flex flex-col gap-6 w-full animate-fadeIn" id="noesis-debate-constructor">
-        {/* Constructor Mode Toggle */}
-        <div className="constructor-mode-switch bg-slate-100 p-1 sm:p-1.5 rounded-xl grid grid-cols-3 gap-1 sm:gap-2 w-full max-w-3xl self-start border border-slate-200 shadow-sm" id="constructor-mode-toggle-group">
-          <button
-            type="button"
-            id="btn-quiz-mode"
-            onClick={() => setConstructorMode('quiz')}
-            className={`flex-1 py-2 px-3 sm:px-4 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              constructorMode === 'quiz' 
-                ? 'bg-amber-500 text-white shadow-sm' 
-                : 'text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <Layers className="h-4 w-4 shrink-0" />
-            <span>Тести</span><span className="hidden 2xl:inline"> (Quiz)</span>
-          </button>
-          <button
-            type="button"
-            id="btn-debate-mode"
-            onClick={() => setConstructorMode('debate')}
-            className={`flex-1 py-2 px-3 sm:px-4 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              constructorMode === 'debate' 
-                ? 'bg-amber-500 text-white shadow-sm' 
-                : 'text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <Sparkles className="h-4 w-4 shrink-0" />
-            <span>Дебати</span><span className="hidden 2xl:inline"> (Debates)</span>
-          </button>
-          <button
-            type="button"
-            id="btn-causal-graph-mode"
-            onClick={() => setConstructorMode('causal_graph')}
-            className={`flex-1 py-2 px-3 sm:px-4 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              constructorMode === 'causal_graph' 
-                ? 'bg-amber-500 text-white shadow-sm' 
-                : 'text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <GitFork className="h-4 w-4 shrink-0" />
-            <span>Причинний граф</span><span className="hidden 2xl:inline"> (Causal Graph)</span>
-          </button>
-        </div>
+        <ConstructorModeTabs value={constructorMode} onChange={setConstructorMode} />
 
         {/* Sub-Navigation: Topics vs Disciplines */}
         <div className="flex border-b border-slate-200 gap-1 bg-white p-1 rounded-xl shadow-sm border self-start" id="debate-subtab-navigation">
@@ -3297,45 +3261,7 @@ export default function NoesisConstructor({
   if (constructorMode === 'causal_graph') {
     return (
       <div className="constructor-shell flex flex-col gap-6 w-full animate-fadeIn">
-        {/* Constructor Mode Toggle */}
-        <div className="constructor-mode-switch bg-slate-100 p-1 sm:p-1.5 rounded-xl grid grid-cols-3 gap-1 sm:gap-2 w-full max-w-3xl self-start border border-slate-200 shadow-sm">
-          <button
-            type="button"
-            onClick={() => setConstructorMode('quiz')}
-            className={`flex-1 py-2 px-3 sm:px-4 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              constructorMode === 'quiz' 
-                ? 'bg-amber-500 text-white shadow-sm' 
-                : 'text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <Layers className="h-4 w-4 shrink-0" />
-            <span>Тести</span><span className="hidden 2xl:inline"> (Quiz)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setConstructorMode('debate')}
-            className={`flex-1 py-2 px-3 sm:px-4 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              constructorMode === 'debate' 
-                ? 'bg-amber-500 text-white shadow-sm' 
-                : 'text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <Sparkles className="h-4 w-4 shrink-0" />
-            <span>Дебати</span><span className="hidden 2xl:inline"> (Debates)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setConstructorMode('causal_graph')}
-            className={`flex-1 py-2 px-3 sm:px-4 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              constructorMode === 'causal_graph' 
-                ? 'bg-amber-500 text-white shadow-sm' 
-                : 'text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <GitFork className="h-4 w-4 shrink-0" />
-            <span>Причинний граф</span><span className="hidden 2xl:inline"> (Causal Graph)</span>
-          </button>
-        </div>
+        <ConstructorModeTabs value={constructorMode} onChange={setConstructorMode} />
 
         <Suspense fallback={<LazyPanelFallback />}>
           <CausalGraphConstructor
@@ -3355,60 +3281,31 @@ export default function NoesisConstructor({
     );
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+  if (constructorMode === 'logic') {
+    return (
+      <div className="constructor-shell flex flex-col gap-6 w-full animate-fadeIn">
+        <ConstructorModeTabs value={constructorMode} onChange={setConstructorMode} />
+        <Suspense fallback={<LazyPanelFallback />}>
+          <LogicConstructorWorkspace
+            dbInstance={dbInstance}
+            authInstance={authInstance}
+            category={resolvedCategory}
+            levelId={String(level)}
+            questionId={calculatedQuestionId}
+            lang={lang}
+            questionNumber={questionNumber}
+            block={blockIdentifier}
+            hasConstructorPermission={hasConstructorPermission}
+            triggerToast={triggerToast}
+            onRefreshExplorer={onRefreshExplorer}
+          />
+        </Suspense>
+      </div>
+    );
+  }
   return (
     <div className="constructor-shell flex flex-col gap-6 w-full">
-      {/* Constructor Mode Toggle */}
-      <div className="constructor-mode-switch bg-slate-100 p-1 sm:p-1.5 rounded-xl grid grid-cols-3 gap-1 sm:gap-2 w-full max-w-3xl self-start border border-slate-200 shadow-sm">
-        <button
-          type="button"
-          onClick={() => setConstructorMode('quiz')}
-          className={`flex-1 py-2 px-3 sm:px-4 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-            constructorMode === 'quiz' 
-              ? 'bg-amber-500 text-white shadow-sm' 
-              : 'text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          <Layers className="h-4 w-4 shrink-0" />
-          <span>Тести</span><span className="hidden 2xl:inline"> (Quiz)</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setConstructorMode('debate')}
-          className={`flex-1 py-2 px-3 sm:px-4 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-            constructorMode === 'debate' 
-              ? 'bg-amber-500 text-white shadow-sm' 
-              : 'text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          <Sparkles className="h-4 w-4 shrink-0" />
-          <span>Дебати</span><span className="hidden 2xl:inline"> (Debates)</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setConstructorMode('causal_graph')}
-          className={`flex-1 py-2 px-3 sm:px-4 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-            constructorMode === 'causal_graph' 
-              ? 'bg-amber-500 text-white shadow-sm' 
-              : 'text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          <GitFork className="h-4 w-4 shrink-0" />
-          <span>Причинний граф</span><span className="hidden 2xl:inline"> (Causal Graph)</span>
-        </button>
-      </div>
+      <ConstructorModeTabs value={constructorMode} onChange={setConstructorMode} />
 
       {/* Constructor Status Banner */}
       {authInstance && dbInstance && (
