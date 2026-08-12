@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Auth } from 'firebase/auth';
 import { Firestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import {
@@ -122,6 +122,8 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
   const [allowOverwrite, setAllowOverwrite] = useState(false);
   const [jsonText, setJsonText] = useState('');
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [isJsonDirty, setIsJsonDirty] = useState(false);
+  const localRevisionRef = useRef(0);
 
   useEffect(() => {
     setQuestion(current => ({
@@ -134,6 +136,7 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
 
   useEffect(() => {
     let subscribed = true;
+    const revisionAtLoadStart = localRevisionRef.current;
     const load = async () => {
       if (!dbInstance || !category || !levelId || !questionId) return;
       setIsLoading(true);
@@ -141,7 +144,7 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
       try {
         const reference = doc(dbInstance, category, String(levelId), 'questions', questionId);
         const snapshot = await getDoc(reference);
-        if (!subscribed) return;
+        if (!subscribed || localRevisionRef.current !== revisionAtLoadStart) return;
         if (!snapshot.exists()) {
           const fresh = createSampleLogicalInferenceQuestion();
           fresh.lang = lang;
@@ -175,11 +178,11 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
   }, [dbInstance, category, levelId, questionId]);
 
   useEffect(() => {
-    if (activeTab === 'json') {
+    if (activeTab === 'json' && !isJsonDirty) {
       setJsonText(JSON.stringify(question, null, 2));
       setJsonError(null);
     }
-  }, [activeTab, question]);
+  }, [activeTab, question, isJsonDirty]);
 
   const validationIssues = useMemo(() => validateLogicalInferenceQuestion(question), [question]);
   const errorCount = validationIssues.filter(issue => issue.severity === 'ERROR').length;
@@ -193,11 +196,24 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
   }, [question.conclusionBuilder]);
 
   const update = (mutator: (draft: LogicalInferenceQuestionDocument) => void) => {
+    localRevisionRef.current += 1;
     setQuestion(current => {
       const draft = cloneQuestion(current);
       mutator(draft);
       return draft;
     });
+  };
+
+  const readQuestionFromJson = () => {
+    const parsed: unknown = JSON.parse(jsonText);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('JSON повинен містити один об’єкт питання.');
+    }
+    const raw = parsed as Record<string, unknown>;
+    if (raw.type !== 'LOGICAL_INFERENCE') {
+      throw new Error('type повинен дорівнювати LOGICAL_INFERENCE.');
+    }
+    return normalizeLogicalInferenceQuestion(raw);
   };
 
   const addVocabularyItem = () => update(draft => {
@@ -250,12 +266,13 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
 
   const applyJson = () => {
     try {
-      const parsed = JSON.parse(jsonText);
-      const normalized = normalizeLogicalInferenceQuestion(parsed);
-      if (parsed.type !== 'LOGICAL_INFERENCE') throw new Error('type повинен дорівнювати LOGICAL_INFERENCE.');
+      const normalized = readQuestionFromJson();
+      localRevisionRef.current += 1;
       setQuestion(normalized);
+      setJsonText(JSON.stringify(normalized, null, 2));
+      setIsJsonDirty(false);
       setJsonError(null);
-      triggerToast('JSON застосовано до редактора.', 'success');
+      triggerToast(`JSON застосовано: питання №${normalized.number}, ${normalized.premises.length} засновків.`, 'success');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Некоректний JSON.';
       setJsonError(message);
@@ -284,6 +301,8 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
     const reader = new FileReader();
     reader.onload = () => {
       setJsonText(String(reader.result || ''));
+      setIsJsonDirty(true);
+      setJsonError(null);
       setActiveTab('json');
     };
     reader.readAsText(file);
@@ -299,11 +318,6 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
       triggerToast('Немає дозволу конструктора на запис.', 'error');
       return;
     }
-    if (!isValid) {
-      setActiveTab('validation');
-      triggerToast('Виправте помилки валідації перед збереженням.', 'error');
-      return;
-    }
     if (existingForeignType && !allowOverwrite) {
       triggerToast(`За цим шляхом уже є питання ${existingForeignType}. Підтвердьте заміну.`, 'error');
       return;
@@ -311,7 +325,19 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
 
     setIsSaving(true);
     try {
-      const clean = cloneQuestion(question);
+      const sourceQuestion = isJsonDirty ? readQuestionFromJson() : question;
+      const sourceIssues = validateLogicalInferenceQuestion(sourceQuestion);
+      const sourceErrors = sourceIssues.filter(issue => issue.severity === 'ERROR');
+      if (sourceErrors.length > 0) {
+        if (isJsonDirty) {
+          setJsonError(`JSON містить ${sourceErrors.length} помилок структури. Застосуйте його, щоб переглянути деталі валідації.`);
+        } else {
+          setActiveTab('validation');
+        }
+        throw new Error(`Виправте ${sourceErrors.length} помилок валідації перед збереженням.`);
+      }
+
+      const clean = cloneQuestion(sourceQuestion);
       clean.question = clean.question.trim();
       clean.explanation = clean.explanation.trim();
       clean.block = clean.block.trim();
@@ -325,7 +351,14 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
       }
       setExistingForeignType(null);
       setAllowOverwrite(false);
-      triggerToast(`LOGICAL_INFERENCE (${questionId}) збережено і перевірено.`, 'success');
+      if (isJsonDirty) {
+        localRevisionRef.current += 1;
+        setQuestion(clean);
+        setJsonText(JSON.stringify(clean, null, 2));
+        setIsJsonDirty(false);
+        setJsonError(null);
+      }
+      triggerToast(`LOGICAL_INFERENCE (${questionId}, питання №${clean.number}) збережено і перевірено.`, 'success');
       onRefreshExplorer();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Невідома помилка.';
@@ -356,7 +389,7 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
           <button
             type="button"
             onClick={save}
-            disabled={isSaving || isLoading || !hasConstructorPermission || !isValid || Boolean(existingForeignType && !allowOverwrite)}
+            disabled={isSaving || isLoading || !hasConstructorPermission || (!isValid && !isJsonDirty) || Boolean(existingForeignType && !allowOverwrite)}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-xs font-extrabold text-slate-950 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
           >
             {isSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -612,7 +645,23 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
               <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-[11px] font-bold text-slate-700"><Upload className="h-3.5 w-3.5" /> Імпорт<input type="file" accept="application/json,.json" onChange={uploadJson} className="hidden" /></label>
             </div>
           </div>
-          <textarea value={jsonText} onChange={event => setJsonText(event.target.value)} rows={28} spellCheck={false} className="w-full rounded-lg border border-slate-300 bg-slate-950 p-4 font-mono text-[11px] leading-5 text-slate-100 outline-none focus:border-amber-400" />
+          <textarea
+            value={jsonText}
+            onChange={event => {
+              setJsonText(event.target.value);
+              setIsJsonDirty(true);
+              setJsonError(null);
+              localRevisionRef.current += 1;
+            }}
+            rows={28}
+            spellCheck={false}
+            className="w-full rounded-lg border border-slate-300 bg-slate-950 p-4 font-mono text-[11px] leading-5 text-slate-100 outline-none focus:border-amber-400"
+          />
+          {isJsonDirty && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">
+              JSON змінено. Кнопка «Зберегти у Firestore» автоматично використає цю версію; «Застосувати JSON» переносить її у візуальні вкладки для перевірки.
+            </div>
+          )}
           {jsonError && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-700">{jsonError}</div>}
           <button type="button" onClick={applyJson} className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-bold text-white"><FileJson className="h-4 w-4" /> Застосувати JSON</button>
         </div>
