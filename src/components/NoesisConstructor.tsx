@@ -100,6 +100,25 @@ interface NoesisConstructorProps {
   setSharedBlockIdentifier?: (val: string) => void;
 }
 
+interface LiteratureSource {
+  name: string;
+  link: string;
+}
+
+const MAX_LEVEL_LITERATURE_SOURCES = 4;
+
+const parseLiteratureSources = (value: unknown): LiteratureSource[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+    .map(item => ({
+      name: typeof item.name === 'string' ? item.name : '',
+      link: typeof item.link === 'string' ? item.link : ''
+    }))
+    .slice(0, MAX_LEVEL_LITERATURE_SOURCES);
+};
+
 export default function NoesisConstructor({
   dbInstance,
   authInstance,
@@ -203,6 +222,11 @@ export default function NoesisConstructor({
   const [quizName, setQuizName] = useState(() => getStorageItem('noesis_quiz_name', ''));
   const [author, setAuthor] = useState(() => getStorageItem('noesis_author', ''));
   const [levelDescription, setLevelDescription] = useState(() => getStorageItem('noesis_level_description', ''));
+  const [levelRecommendedLiterature, setLevelRecommendedLiterature] = useState<LiteratureSource[]>([]);
+  const [isLevelLiteratureLoading, setIsLevelLiteratureLoading] = useState(false);
+  const [isLevelLiteratureSaving, setIsLevelLiteratureSaving] = useState(false);
+  const [loadedLevelLiteraturePath, setLoadedLevelLiteraturePath] = useState('');
+  const [levelLiteratureLoadError, setLevelLiteratureLoadError] = useState('');
 
   const [localQuestionNumber, setLocalQuestionNumber] = useState<string>(() => getStorageItem('noesis_qnum', '1'));
   const questionNumber = sharedQuestionNumber !== undefined ? sharedQuestionNumber : localQuestionNumber;
@@ -1339,6 +1363,96 @@ export default function NoesisConstructor({
     return `/${resolvedCategory}/${level}/questions/${calculatedQuestionId}`;
   }, [resolvedCategory, level, calculatedQuestionId]);
 
+  useEffect(() => {
+    let isCurrent = true;
+
+    setLevelRecommendedLiterature([]);
+    setLoadedLevelLiteraturePath('');
+    setLevelLiteratureLoadError('');
+
+    if (!dbInstance) {
+      setIsLevelLiteratureLoading(false);
+      return () => {
+        isCurrent = false;
+      };
+    }
+
+    setIsLevelLiteratureLoading(true);
+
+    const loadLevelLiterature = async () => {
+      try {
+        const snapshot = await getDoc(doc(dbInstance, resolvedCategory, String(level)));
+        if (!isCurrent) return;
+
+        const sources = snapshot.exists()
+          ? parseLiteratureSources(snapshot.data().recommendedLiterature)
+          : [];
+        setLevelRecommendedLiterature(sources);
+        setLoadedLevelLiteraturePath(levelDocPath);
+      } catch (error) {
+        if (!isCurrent) return;
+        console.error('Failed to load level recommended literature', error);
+        setLevelLiteratureLoadError('Не вдалося завантажити джерела рівня. Збереження заблоковано, щоб не стерти наявні дані.');
+      } finally {
+        if (isCurrent) setIsLevelLiteratureLoading(false);
+      }
+    };
+
+    void loadLevelLiterature();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [dbInstance, level, levelDocPath, resolvedCategory]);
+
+  const validateLevelLiterature = (): LiteratureSource[] | null => {
+    const normalized = levelRecommendedLiterature
+      .map(source => ({ name: source.name.trim(), link: source.link.trim() }))
+      .filter(source => source.name || source.link);
+
+    if (normalized.some(source => !source.name || !source.link)) {
+      triggerToast('Для кожного джерела рівня вкажіть назву та посилання.', 'error');
+      return null;
+    }
+    if (normalized.some(source => !/^https:\/\//i.test(source.link))) {
+      triggerToast('Посилання джерел рівня повинні починатися з https://', 'error');
+      return null;
+    }
+
+    return normalized;
+  };
+
+  const handleSaveLevelLiterature = async () => {
+    if (!dbInstance) {
+      triggerToast('Спочатку підключіть Firebase.', 'error');
+      return;
+    }
+    if (isLevelLiteratureLoading || loadedLevelLiteraturePath !== levelDocPath) {
+      triggerToast('Зачекайте, доки завантажаться джерела вибраного рівня.', 'error');
+      return;
+    }
+
+    const normalized = validateLevelLiterature();
+    if (!normalized) return;
+
+    try {
+      setIsLevelLiteratureSaving(true);
+      await setDoc(
+        doc(dbInstance, resolvedCategory, String(level)),
+        { recommendedLiterature: normalized },
+        { merge: true }
+      );
+      setLevelRecommendedLiterature(normalized);
+      triggerToast(`Джерела рівня ${level} збережено.`, 'success');
+      onRefreshExplorer();
+    } catch (error) {
+      console.error('Failed to save level recommended literature', error);
+      triggerToast('Не вдалося зберегти джерела рівня.', 'error');
+    } finally {
+      setIsLevelLiteratureSaving(false);
+    }
+  };
+
   // Save changes to Database using Transaction (Section 16)
   const handleSaveToDatabase = async () => {
     if (!dbInstance) {
@@ -1492,6 +1606,14 @@ export default function NoesisConstructor({
         return;
       }
 
+      if (isLevelLiteratureLoading || loadedLevelLiteraturePath !== levelDocPath) {
+        triggerToast('Зачекайте, доки завантажаться джерела вибраного рівня.', 'error');
+        return;
+      }
+
+      const normalizedLevelLiterature = validateLevelLiterature();
+      if (!normalizedLevelLiterature) return;
+
       if (questionType === 'SINGLE_CHOICE' || questionType === 'MULTIPLE_CHOICE') {
         const nonEmp = options.filter(o => o.value && o.value.trim() !== '');
         if (nonEmp.length < 2) {
@@ -1517,6 +1639,7 @@ export default function NoesisConstructor({
               subscriptionTier: subscriptionTier || 'free',
               status: 'UNLOCKED',
               questionCount: 1,
+              recommendedLiterature: normalizedLevelLiterature,
               ...(quizName.trim() ? { name: quizName.trim() } : {}),
               ...(author.trim() ? { author: author.trim() } : {}),
               ...(levelDescription.trim() ? { description: levelDescription.trim() } : {})
@@ -1524,7 +1647,8 @@ export default function NoesisConstructor({
           } else {
             transaction.update(levelDocRef, {
               ...(!alreadyExists ? { questionCount: increment(1) } : {}),
-              subscriptionTier: subscriptionTier || 'free'
+              subscriptionTier: subscriptionTier || 'free',
+              recommendedLiterature: normalizedLevelLiterature
             });
           }
 
@@ -3494,6 +3618,99 @@ export default function NoesisConstructor({
               onChange={e => setLevelDescription(e.target.value)}
               className="bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg text-xs w-full resize-none"
             />
+
+            <div className="border-t border-slate-200 pt-3 flex flex-col gap-2.5">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                    <BookOpen className="h-3.5 w-3.5 text-amber-600" />
+                    Література рівня (Level recommendedLiterature)
+                  </div>
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    До 4 спільних джерел для вкладки літератури рівня. Це не джерела окремого питання.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLevelRecommendedLiterature(current => [
+                      ...current,
+                      { name: '', link: '' }
+                    ])}
+                    disabled={isLevelLiteratureLoading || isLevelLiteratureSaving || levelRecommendedLiterature.length >= MAX_LEVEL_LITERATURE_SOURCES}
+                    className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[10px] font-bold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Додати ({levelRecommendedLiterature.length}/{MAX_LEVEL_LITERATURE_SOURCES})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveLevelLiterature()}
+                    disabled={isLevelLiteratureLoading || isLevelLiteratureSaving || Boolean(levelLiteratureLoadError)}
+                    className="inline-flex items-center gap-1 rounded-lg bg-slate-800 px-2.5 py-1.5 text-[10px] font-bold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isLevelLiteratureSaving ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                    Зберегти джерела
+                  </button>
+                </div>
+              </div>
+
+              {isLevelLiteratureLoading && (
+                <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-[11px] text-slate-500">
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  Завантаження джерел документа {levelDocPath}...
+                </div>
+              )}
+
+              {levelLiteratureLoadError && (
+                <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-700">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  {levelLiteratureLoadError}
+                </div>
+              )}
+
+              {!isLevelLiteratureLoading && !levelLiteratureLoadError && levelRecommendedLiterature.length === 0 && (
+                <p className="rounded-lg border border-dashed border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-400">
+                  Для цього рівня джерела ще не додані.
+                </p>
+              )}
+
+              {levelRecommendedLiterature.map((source, index) => (
+                <div key={index} className="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-white p-2.5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)_36px] md:items-center">
+                  <input
+                    type="text"
+                    value={source.name}
+                    onChange={event => setLevelRecommendedLiterature(current => current.map((item, itemIndex) => (
+                      itemIndex === index ? { ...item, name: event.target.value } : item
+                    )))}
+                    placeholder={`Назва джерела ${index + 1}`}
+                    disabled={isLevelLiteratureLoading || isLevelLiteratureSaving}
+                    className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs focus:border-amber-400 focus:bg-white focus:outline-none disabled:opacity-60"
+                  />
+                  <input
+                    type="url"
+                    inputMode="url"
+                    value={source.link}
+                    onChange={event => setLevelRecommendedLiterature(current => current.map((item, itemIndex) => (
+                      itemIndex === index ? { ...item, link: event.target.value } : item
+                    )))}
+                    placeholder="https://..."
+                    disabled={isLevelLiteratureLoading || isLevelLiteratureSaving}
+                    className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs focus:border-amber-400 focus:bg-white focus:outline-none disabled:opacity-60"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setLevelRecommendedLiterature(current => current.filter((_, itemIndex) => itemIndex !== index))}
+                    disabled={isLevelLiteratureLoading || isLevelLiteratureSaving}
+                    aria-label={`Видалити джерело ${index + 1}`}
+                    title="Видалити джерело"
+                    className="inline-flex h-9 w-9 items-center justify-center justify-self-end rounded-lg text-red-500 transition hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
