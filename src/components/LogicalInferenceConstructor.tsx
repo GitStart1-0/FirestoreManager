@@ -449,7 +449,11 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
           <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div>
               <h3 className="text-sm font-bold text-slate-900">Словник символів</h3>
-              <p className="mt-1 text-[11px] text-slate-500">Стабільні ID використовуються в усіх AST-формулах.</p>
+              <p className="mt-1 max-w-3xl text-[11px] text-slate-500">
+                Значення «людина», «смертний», «Сократ» і «Платон» належать лише до стартового прикладу.
+                Для кожного нового міркування замініть їх власними предикатами, відношеннями, об’єктами та змінними.
+                Стабільні ID цього словника використовуються в усіх AST-формулах питання.
+              </p>
             </div>
             <button type="button" onClick={addVocabularyItem} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-[11px] font-bold text-white"><Plus className="h-3.5 w-3.5" /> Додати</button>
           </div>

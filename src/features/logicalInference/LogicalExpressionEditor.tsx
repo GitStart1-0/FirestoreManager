@@ -5,6 +5,7 @@ import {
   LogicalExpressionKind,
   LogicalSlotDefinition,
   LogicalSymbolDefinition,
+  LogicalSymbolKind,
   expression,
 } from '../../types/logicalInference';
 
@@ -16,7 +17,10 @@ interface LogicalExpressionEditorProps {
   allowSlotRefs?: boolean;
   label?: string;
   depth?: number;
+  symbolRole?: SymbolRole;
 }
+
+type SymbolRole = 'ANY' | 'FORMULA' | 'PREDICATE_HEAD' | 'TERM' | 'VARIABLE';
 
 const selectClass = 'w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-800 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-200/60';
 
@@ -73,6 +77,32 @@ const kindLabel: Record<LogicalExpressionKind, string> = {
   EQUALS: 'Тотожність',
 };
 
+const symbolKindsByRole: Record<SymbolRole, LogicalSymbolKind[]> = {
+  ANY: ['CONSTANT', 'VARIABLE', 'CLASS', 'PREDICATE', 'RELATION', 'PROPOSITION', 'CONNECTIVE', 'QUANTIFIER'],
+  FORMULA: ['PROPOSITION'],
+  PREDICATE_HEAD: ['PREDICATE', 'RELATION', 'CLASS'],
+  TERM: ['CONSTANT', 'VARIABLE'],
+  VARIABLE: ['VARIABLE'],
+};
+
+const symbolLabelByRole: Record<SymbolRole, string> = {
+  ANY: 'Символ зі словника питання',
+  FORMULA: 'Пропозиційний символ',
+  PREDICATE_HEAD: 'Предикат або відношення',
+  TERM: 'Терм (об’єкт або змінна)',
+  VARIABLE: 'Зв’язана змінна',
+};
+
+const childSymbolRole = (parentKind: LogicalExpressionKind, childIndex: number): SymbolRole => {
+  if (parentKind === 'PREDICATE') return childIndex === 0 ? 'PREDICATE_HEAD' : 'TERM';
+  if (parentKind === 'FOR_ALL' || parentKind === 'EXISTS') return childIndex === 0 ? 'VARIABLE' : 'FORMULA';
+  if (parentKind === 'EQUALS') return 'TERM';
+  if (parentKind === 'NOT' || parentKind === 'AND' || parentKind === 'OR' || parentKind === 'IMPLIES' || parentKind === 'IFF') {
+    return 'FORMULA';
+  }
+  return 'ANY';
+};
+
 export function LogicalExpressionEditor({
   value,
   onChange,
@@ -81,14 +111,19 @@ export function LogicalExpressionEditor({
   allowSlotRefs = false,
   label,
   depth = 0,
+  symbolRole = 'ANY',
 }: LogicalExpressionEditorProps) {
   const kinds = allowSlotRefs
     ? LOGICAL_EXPRESSION_KINDS
     : LOGICAL_EXPRESSION_KINDS.filter(kind => kind !== 'SLOT_REF');
   const children = value.children || [];
+  const allowedSymbolKinds = symbolKindsByRole[symbolRole];
+  const compatibleVocabulary = vocabulary.filter(symbol =>
+    allowedSymbolKinds.includes(symbol.kind) || symbol.id === value.value,
+  );
   const referenceOptions = value.kind === 'SLOT_REF'
     ? slots.map(slot => ({ id: slot.id, label: `${slot.label} (${slot.id})` }))
-    : vocabulary.map(symbol => ({ id: symbol.id, label: `${symbol.label} (${symbol.id})` }));
+    : compatibleVocabulary.map(symbol => ({ id: symbol.id, label: `${symbol.label} (${symbol.id})` }));
 
   const updateChild = (index: number, child: LogicalExpression) => {
     onChange({ ...value, children: children.map((item, childIndex) => childIndex === index ? child : item) });
@@ -111,7 +146,7 @@ export function LogicalExpressionEditor({
         {(value.kind === 'SYMBOL' || value.kind === 'SLOT_REF') && (
           <label className="space-y-1">
             <span className="block text-[11px] font-bold text-slate-600">
-              {value.kind === 'SLOT_REF' ? 'Слот' : 'Символ словника'}
+              {value.kind === 'SLOT_REF' ? 'Слот конструктора' : symbolLabelByRole[symbolRole]}
             </span>
             <select
               value={value.value || ''}
@@ -135,8 +170,13 @@ export function LogicalExpressionEditor({
                 vocabulary={vocabulary}
                 slots={slots}
                 allowSlotRefs={allowSlotRefs}
-                label={value.kind === 'PREDICATE' && index === 0 ? 'Голова предиката' : `Аргумент ${index + 1}`}
+                label={value.kind === 'PREDICATE' && index === 0
+                  ? 'Голова предиката'
+                  : value.kind === 'PREDICATE'
+                    ? `Аргумент ${index}`
+                    : `Частина виразу ${index + 1}`}
                 depth={depth + 1}
+                symbolRole={childSymbolRole(value.kind, index)}
               />
               {value.kind === 'PREDICATE' && index > 1 && (
                 <button
