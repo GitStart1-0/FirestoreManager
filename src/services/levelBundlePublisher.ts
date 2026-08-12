@@ -57,7 +57,6 @@ export async function publishLevelBundle({
   const sourceLevelRef = doc(db, expectedResolvedCategory, levelId);
   const questionSnapshot = await getDocs(collection(sourceLevelRef, 'questions'));
   const questions = questionSnapshot.docs
-    .filter(question => matchesLanguage(question.id, question.data().lang, normalizedLang))
     .sort(compareQuestionDocuments)
     .map(question => ({
       id: question.id,
@@ -145,23 +144,6 @@ function validateBundleIdentity(
   }
   if (!SAFE_LEVEL_ID.test(levelId)) {
     throw new Error('ID рівня має містити 1–64 латинські літери, цифри, дефіс або підкреслення.');
-  }
-}
-
-function matchesLanguage(id: string, rawLang: unknown, lang: string): boolean {
-  const explicitLang = normalizeLanguageIfSupported(rawLang);
-  const idLang = id.includes('--') ? normalizeLanguageIfSupported(id.split('--')[0]) : '';
-  if (explicitLang) return explicitLang === lang;
-  if (idLang) return idLang === lang;
-  return true;
-}
-
-function normalizeLanguageIfSupported(value: unknown): string {
-  if (typeof value !== 'string' || !/^[a-z]{2,3}$/i.test(value.trim())) return '';
-  try {
-    return normalizeContentLanguage(value);
-  } catch {
-    return '';
   }
 }
 
