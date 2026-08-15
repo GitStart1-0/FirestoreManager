@@ -16,6 +16,8 @@ export interface TournamentQuestionPayload {
   topicLabel: string | null;
   sourcePath: string;
   sourceVersion: number;
+  minimumAge?: number;
+  contentWarnings?: string[];
   answers?: string[];
   correctAnswerIndices?: number[];
   correctAnswer?: boolean;
@@ -40,6 +42,12 @@ export async function publishTournamentQuestion(
 ): Promise<TournamentPublishResult> {
   if (!auth.currentUser) {
     throw new Error('Увійдіть у дозволений обліковий запис конструктора.');
+  }
+
+  if ((payload.minimumAge ?? 16) >= 18 || (payload.contentWarnings?.length ?? 0) > 0) {
+    throw new Error(
+      'Матеріали 18+ або з попередженнями не публікуються в спільному турнірному пулі.'
+    );
   }
 
   if (payload.type === 'SINGLE_CHOICE' || payload.type === 'MULTIPLE_CHOICE') {

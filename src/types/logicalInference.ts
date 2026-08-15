@@ -1,3 +1,5 @@
+import { ContentPolicyFields, normalizeContentPolicy } from './contentPolicy';
+
 export type LogicalInferenceFamily =
   | 'CATEGORICAL'
   | 'SINGULAR'
@@ -111,7 +113,7 @@ export interface RecommendedLiteratureItem {
   link: string;
 }
 
-export interface LogicalInferenceQuestionDocument {
+export interface LogicalInferenceQuestionDocument extends ContentPolicyFields {
   type: 'LOGICAL_INFERENCE';
   lang: string;
   number: number;
@@ -275,6 +277,9 @@ export function createSampleLogicalInferenceQuestion(): LogicalInferenceQuestion
     scientificDisciplines: ['logic'],
     recommendedLiterature: [],
     literatureHiddenAtStart: false,
+    minimumAge: 16,
+    contentWarnings: [],
+    contentTags: [],
   };
 }
 
@@ -288,11 +293,13 @@ export function normalizeLogicalInferenceQuestion(value: unknown): LogicalInfere
   const rawBuilder = isRecord(value.conclusionBuilder) ? value.conclusionBuilder : {};
   const rawPolicy = isRecord(value.answerPolicy) ? value.answerPolicy : {};
   const rawExpected = isRecord(value.expectedAnswer) ? value.expectedAnswer : {};
+  const contentPolicy = normalizeContentPolicy(value as Partial<ContentPolicyFields>);
 
   return {
     ...fallback,
     ...value,
     type: 'LOGICAL_INFERENCE',
+    ...contentPolicy,
     lang: typeof value.lang === 'string' ? value.lang : fallback.lang,
     number: Number.isFinite(Number(value.number)) ? Number(value.number) : fallback.number,
     block: typeof value.block === 'string' ? value.block : fallback.block,

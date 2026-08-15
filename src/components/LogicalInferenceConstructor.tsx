@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { LogicalExpressionEditor } from '../features/logicalInference/LogicalExpressionEditor';
 import { stripUndefinedValues } from '../shared/data/stripUndefinedValues';
+import { ContentPolicyFields } from './ContentPolicyFields';
 import {
   LOGICAL_SLOT_TYPES,
   LOGICAL_SYMBOL_KINDS,
@@ -474,6 +475,15 @@ export const LogicalInferenceConstructor: React.FC<LogicalInferenceConstructorPr
               <input value={question.scientificDisciplines.join(', ')} onChange={event => update(draft => { draft.scientificDisciplines = csv(event.target.value); })} className={inputClass} />
             </label>
           </div>
+          <ContentPolicyFields
+            value={question}
+            onChange={policy => update(draft => {
+              draft.minimumAge = policy.minimumAge;
+              draft.contentWarnings = policy.contentWarnings;
+              draft.contentTags = policy.contentTags;
+            })}
+            compact
+          />
         </div>
       )}
 

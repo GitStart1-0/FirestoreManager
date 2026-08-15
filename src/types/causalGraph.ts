@@ -1,3 +1,5 @@
+import { ContentPolicyFields, normalizeContentPolicy } from './contentPolicy';
+
 export type CausalGraphMode = 'CAUSAL_CHAIN' | 'CAUSAL_REASONING_TREE' | 'SCIENTIFIC_INQUIRY_TREE';
 
 export type FeedbackTiming = 'IMMEDIATE' | 'AT_CHECKPOINT' | 'AT_END';
@@ -151,7 +153,7 @@ export interface ScientificSource {
   doi: string;
 }
 
-export interface CausalGraphQuestion {
+export interface CausalGraphQuestion extends ContentPolicyFields {
   type: 'CAUSAL_GRAPH';
   question: string;
   introduction: string; // max 800 chars
@@ -203,6 +205,7 @@ export function isTechnicalCausalNodeType(type: CausalNodeType): boolean {
 }
 
 export function normalizeCausalGraphQuestion(q: Partial<CausalGraphQuestion>): CausalGraphQuestion {
+  const contentPolicy = normalizeContentPolicy(q);
   return {
     type: 'CAUSAL_GRAPH',
     question: q.question || '',
@@ -213,6 +216,7 @@ export function normalizeCausalGraphQuestion(q: Partial<CausalGraphQuestion>): C
         : ['фізика'],
     topics: q.topics || [],
     explanation: q.explanation || '',
+    ...contentPolicy,
     schemaVersion: q.schemaVersion || 1,
     contentVersion: q.contentVersion || 1,
     mode: q.mode || 'CAUSAL_CHAIN',

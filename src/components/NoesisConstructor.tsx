@@ -61,6 +61,8 @@ import {
 } from '../features/tournaments/publishTournamentQuestion';
 import { DISCIPLINARY_GROUPS, DISCIPLINE_MAP } from '../domain/content/disciplines';
 import { ConstructorMode, ConstructorModeTabs } from './ConstructorModeTabs';
+import { ContentPolicyFields } from './ContentPolicyFields';
+import { DEFAULT_CONTENT_POLICY, normalizeContentPolicy } from '../types/contentPolicy';
 
 const CausalGraphConstructor = lazy(async () => {
   const module = await import('./CausalGraphConstructor');
@@ -517,6 +519,7 @@ export default function NoesisConstructor({
     const val = getStorageItem('noesis_literature_hidden', 'false');
     return val === 'true';
   });
+  const [contentPolicy, setContentPolicy] = useState(() => ({ ...DEFAULT_CONTENT_POLICY }));
 
   useEffect(() => {
     setStorageItem('noesis_question_text', questionText);
@@ -915,6 +918,7 @@ export default function NoesisConstructor({
         setRecommendedLiterature([]);
       }
       setLiteratureHiddenAtStart(Boolean(questionData.literatureHiddenAtStart ?? questionData.isLiteratureHiddenAtStart ?? false));
+      setContentPolicy(normalizeContentPolicy(questionData));
 
       // 2. Parse Question ID to segments so it can be re-assembled correctly
       const idParts = questionId.split('--');
@@ -1188,7 +1192,10 @@ export default function NoesisConstructor({
       scientificDisciplines: scientificDisciplines.split(',').map(s => s.trim()).filter(Boolean),
       explanation: explanation,
       recommendedLiterature: recommendedLiterature.filter(lit => lit.name.trim() !== ''),
-      literatureHiddenAtStart: literatureHiddenAtStart
+      literatureHiddenAtStart: literatureHiddenAtStart,
+      minimumAge: contentPolicy.minimumAge,
+      contentWarnings: contentPolicy.contentWarnings,
+      contentTags: contentPolicy.contentTags
     };
 
     // Specific mapping per type
@@ -1336,7 +1343,7 @@ export default function NoesisConstructor({
     comparisonCategories, comparisonStatements, textAnswer, fillInParts, 
     imageOptions, correctImageChoice, readingText1, readingText2, 
     readingCompQuestions, respondentsCount, countriesCount, surveyPeriod, researchCenter, sliders, tenFacts,
-    pairwiseObjects, pairwiseStatements
+    pairwiseObjects, pairwiseStatements, contentPolicy
   ]);
 
   // Real-time generated Question ID
@@ -1728,6 +1735,14 @@ export default function NoesisConstructor({
       const tType = resolveTournamentQuestionType(questionType);
       const sourcePath = lastSavedSourcePath || `${resolvedCategory}/${level}/questions/${calculatedQuestionId}`;
 
+      if (contentPolicy.minimumAge >= 18 || contentPolicy.contentWarnings.length > 0) {
+        triggerToast(
+          'Питання 18+ або з попередженнями залишаються лише в основній колекції і не додаються до турнірів.',
+          'error'
+        );
+        return;
+      }
+
       const tPayload: TournamentQuestionPayload = {
         language: lang === 'uk' ? 'ua' : (lang as any),
         categoryId: tournamentCategoryId || quizCategory,
@@ -1738,7 +1753,9 @@ export default function NoesisConstructor({
         seasonId: finalSeasonId,
         topicLabel: finalTopicLabel,
         sourcePath,
-        sourceVersion: sVer
+        sourceVersion: sVer,
+        minimumAge: contentPolicy.minimumAge,
+        contentWarnings: contentPolicy.contentWarnings
       };
 
       if (tType === 'SINGLE_CHOICE' || tType === 'MULTIPLE_CHOICE') {
@@ -2011,6 +2028,7 @@ export default function NoesisConstructor({
     ]);
     setQuestionIdName('');
     setQuestionText('Який основний принцип утилітаризму Джеремі Бентама?');
+    setContentPolicy({ ...DEFAULT_CONTENT_POLICY });
     
     triggerToast('Всі поля повернено до початкових значень шаблону!', 'success');
   };
@@ -4008,6 +4026,8 @@ export default function NoesisConstructor({
               />
             </div>
           </div>
+
+          <ContentPolicyFields value={contentPolicy} onChange={setContentPolicy} />
 
           {questionType === 'PAIRWISE_DISTINCTION' && (
             <div className="bg-amber-50/80 border border-amber-200/80 p-3.5 rounded-xl text-xs text-amber-900 font-medium flex items-center gap-2">

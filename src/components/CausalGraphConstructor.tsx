@@ -25,6 +25,7 @@ import {
 import { Firestore } from 'firebase/firestore';
 import { Auth } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { ContentPolicyFields } from './ContentPolicyFields';
 import { 
   GitFork, 
   Plus, 
@@ -106,6 +107,9 @@ const createDefaultCausalOptions = (
 // Initial sample template generator for CAUSAL_GRAPH
 const createSampleGraph = (): CausalGraphQuestion => ({
   type: 'CAUSAL_GRAPH',
+  minimumAge: 16,
+  contentWarnings: [],
+  contentTags: [],
   question: 'Причинно-наслідкове дослідження фотосинтезу та хлоропластів',
   introduction: 'У цьому науковому дослідження вам потрібно встановити причинно-наслідкові зв’язки між світловою фазою фотосинтезу та виділенням кисню при підвищенні температури.',
   scientificDisciplines: ['Біологія'],
@@ -1330,6 +1334,12 @@ export const CausalGraphConstructor: React.FC<CausalGraphConstructorProps> = ({
             />
           </div>
         </div>
+
+        <ContentPolicyFields
+          value={graphData}
+          onChange={policy => setGraphData(prev => ({ ...prev, ...policy }))}
+          compact
+        />
 
         {/* Mode & Settings */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
