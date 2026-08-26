@@ -59,6 +59,7 @@
 | `author` | String (Опціонально) | Автор рівня | `"Noesis AI"` |
 | `description` | String (Опціонально) | Опис теми або завдання | `"Основи логіки, деонтології та історії світової думки."` |
 | `subscriptionTier` | String | Доступний тир підписки | `"free"`, `"plus"`, `"expert"` |
+| `presentationMode` | String | Спосіб відкриття рівня | `"QUESTION_GRID"` (типово), `"GUIDED_SEQUENCE"` |
 | `status` | String | Статус доступності рівня за замовчуванням | `"UNLOCKED"` |
 | `questionCount` | Number | Кількість записаних питань на рівні | `5` |
 | `questions` | Map | Карта всіх питань, де ключ - це ID питання, а значення - об'єкт питання (див. нижче) | `{ "ua--01--A--utilitarianism...": { ... } }` |
@@ -340,6 +341,7 @@ data class Level(
     val description: String = "",
     val questionCount: Int = 0,
     val subscriptionTier: String = "free",
+    val presentationMode: String = "QUESTION_GRID",
     val questions: Map<String, Map<String, Any>> = emptyMap() // Мапа з питаннями!
 )
 

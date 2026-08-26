@@ -107,6 +107,8 @@ interface LiteratureSource {
   link: string;
 }
 
+type LevelPresentationMode = 'QUESTION_GRID' | 'GUIDED_SEQUENCE';
+
 const MAX_LEVEL_LITERATURE_SOURCES = 4;
 
 const parseLiteratureSources = (value: unknown): LiteratureSource[] => {
@@ -221,6 +223,11 @@ export default function NoesisConstructor({
   };
 
   const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'plus' | 'expert'>(() => (getStorageItem('noesis_subscription_tier', 'free') as 'free' | 'plus' | 'expert'));
+  const [levelPresentationMode, setLevelPresentationMode] = useState<LevelPresentationMode>(() => {
+    return getStorageItem('noesis_level_presentation_mode', 'QUESTION_GRID') === 'GUIDED_SEQUENCE'
+      ? 'GUIDED_SEQUENCE'
+      : 'QUESTION_GRID';
+  });
   const [quizName, setQuizName] = useState(() => getStorageItem('noesis_quiz_name', ''));
   const [author, setAuthor] = useState(() => getStorageItem('noesis_author', ''));
   const [levelDescription, setLevelDescription] = useState(() => getStorageItem('noesis_level_description', ''));
@@ -432,6 +439,10 @@ export default function NoesisConstructor({
   useEffect(() => {
     setStorageItem('noesis_subscription_tier', subscriptionTier);
   }, [subscriptionTier]);
+
+  useEffect(() => {
+    setStorageItem('noesis_level_presentation_mode', levelPresentationMode);
+  }, [levelPresentationMode]);
 
   useEffect(() => {
     setStorageItem('noesis_quiz_name', quizName);
@@ -1391,9 +1402,43 @@ export default function NoesisConstructor({
         const snapshot = await getDoc(doc(dbInstance, resolvedCategory, String(level)));
         if (!isCurrent) return;
 
-        const sources = snapshot.exists()
-          ? parseLiteratureSources(snapshot.data().recommendedLiterature)
+        const levelData = snapshot.exists() ? snapshot.data() : null;
+        const sources = levelData
+          ? parseLiteratureSources(levelData.recommendedLiterature)
           : [];
+
+        if (levelData) {
+          setLevelPresentationMode(
+            levelData.presentationMode === 'GUIDED_SEQUENCE'
+              ? 'GUIDED_SEQUENCE'
+              : 'QUESTION_GRID'
+          );
+          setQuizName(
+            typeof levelData.name === 'string'
+              ? levelData.name
+              : typeof levelData.levelName === 'string'
+                ? levelData.levelName
+                : typeof levelData.title === 'string'
+                  ? levelData.title
+                  : ''
+          );
+          setAuthor(typeof levelData.author === 'string' ? levelData.author : '');
+          setLevelDescription(typeof levelData.description === 'string' ? levelData.description : '');
+          if (
+            levelData.subscriptionTier === 'free' ||
+            levelData.subscriptionTier === 'plus' ||
+            levelData.subscriptionTier === 'expert'
+          ) {
+            setSubscriptionTier(levelData.subscriptionTier);
+          }
+        } else {
+          setLevelPresentationMode('QUESTION_GRID');
+          setQuizName('');
+          setAuthor('');
+          setLevelDescription('');
+          setSubscriptionTier('free');
+        }
+
         setLevelRecommendedLiterature(sources);
         setLoadedLevelLiteraturePath(levelDocPath);
       } catch (error) {
@@ -1644,6 +1689,7 @@ export default function NoesisConstructor({
             transaction.set(levelDocRef, {
               levelNumber: Number(level),
               subscriptionTier: subscriptionTier || 'free',
+              presentationMode: levelPresentationMode,
               status: 'UNLOCKED',
               questionCount: 1,
               recommendedLiterature: normalizedLevelLiterature,
@@ -1655,6 +1701,10 @@ export default function NoesisConstructor({
             transaction.update(levelDocRef, {
               ...(!alreadyExists ? { questionCount: increment(1) } : {}),
               subscriptionTier: subscriptionTier || 'free',
+              presentationMode: levelPresentationMode,
+              name: quizName.trim(),
+              author: author.trim(),
+              description: levelDescription.trim(),
               recommendedLiterature: normalizedLevelLiterature
             });
           }
@@ -3600,6 +3650,47 @@ export default function NoesisConstructor({
                 <option value="plus">plus (+Plus)</option>
                 <option value="expert">expert (Expert)</option>
               </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Відображення рівня (Level Presentation)
+              </label>
+              <div
+                role="radiogroup"
+                aria-label="Відображення рівня"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1"
+              >
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={levelPresentationMode === 'QUESTION_GRID'}
+                  onClick={() => setLevelPresentationMode('QUESTION_GRID')}
+                  className={`rounded-lg px-3 py-2 text-xs font-bold transition ${
+                    levelPresentationMode === 'QUESTION_GRID'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  QUESTION_GRID · Список питань
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={levelPresentationMode === 'GUIDED_SEQUENCE'}
+                  onClick={() => setLevelPresentationMode('GUIDED_SEQUENCE')}
+                  className={`rounded-lg px-3 py-2 text-xs font-bold transition ${
+                    levelPresentationMode === 'GUIDED_SEQUENCE'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  GUIDED_SEQUENCE · Послідовне проходження
+                </button>
+              </div>
+              <p className="text-[10px] leading-relaxed text-slate-400">
+                Типово використовується QUESTION_GRID. GUIDED_SEQUENCE приховує список і відкриває рівень через вступний екран.
+              </p>
             </div>
           </div>
 

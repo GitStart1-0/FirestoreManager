@@ -1608,6 +1608,7 @@ export default function App() {
           transaction.set(levelDocRef, {
             levelNumber: Number(level) || 1,
             subscriptionTier: 'free',
+            presentationMode: 'QUESTION_GRID',
             status: 'UNLOCKED',
             questionCount: 1
           });
