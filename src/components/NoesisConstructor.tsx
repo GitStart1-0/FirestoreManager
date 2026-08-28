@@ -222,7 +222,7 @@ export default function NoesisConstructor({
     setStorageItem('noesis_level', String(nextVal));
   };
 
-  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'plus' | 'expert'>(() => (getStorageItem('noesis_subscription_tier', 'free') as 'free' | 'plus' | 'expert'));
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'plus' | 'expert'>('free');
   const [levelPresentationMode, setLevelPresentationMode] = useState<LevelPresentationMode>(() => {
     return getStorageItem('noesis_level_presentation_mode', 'QUESTION_GRID') === 'GUIDED_SEQUENCE'
       ? 'GUIDED_SEQUENCE'
@@ -435,10 +435,6 @@ export default function NoesisConstructor({
   useEffect(() => {
     setStorageItem('noesis_lang', lang);
   }, [lang]);
-
-  useEffect(() => {
-    setStorageItem('noesis_subscription_tier', subscriptionTier);
-  }, [subscriptionTier]);
 
   useEffect(() => {
     setStorageItem('noesis_level_presentation_mode', levelPresentationMode);
