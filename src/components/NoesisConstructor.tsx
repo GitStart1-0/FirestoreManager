@@ -108,6 +108,112 @@ interface LiteratureSource {
 }
 
 type LevelPresentationMode = 'QUESTION_GRID' | 'GUIDED_SEQUENCE';
+type LevelBlockType = 'REQUIRED' | 'OPTIONAL' | 'SKIPPABLE_WITH_BRIDGE';
+
+interface LevelBlockConfig {
+  id: string;
+  title: string;
+  description: string;
+  learningObjectives: string[];
+  estimatedMinutes: number;
+  difficulty: string;
+  blockType: LevelBlockType;
+  prerequisiteBlockIds: string[];
+  nextBlockId: string;
+  skipTargetBlockId: string;
+  bridgeTitle: string;
+  bridgeSummary: string;
+  order: number;
+}
+
+const emptyLevelBlock = (id: string, order = 0): LevelBlockConfig => ({
+  id: id.trim().toUpperCase(),
+  title: '',
+  description: '',
+  learningObjectives: [],
+  estimatedMinutes: 0,
+  difficulty: '',
+  blockType: 'REQUIRED',
+  prerequisiteBlockIds: [],
+  nextBlockId: '',
+  skipTargetBlockId: '',
+  bridgeTitle: '',
+  bridgeSummary: '',
+  order
+});
+
+const parseLevelBlocks = (value: unknown): LevelBlockConfig[] => {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item, index) => {
+    if (!item || typeof item !== 'object') return [];
+    const data = item as Record<string, unknown>;
+    const id = typeof data.id === 'string' ? data.id.trim().toUpperCase() : '';
+    if (!id) return [];
+    const stringList = (field: unknown) => Array.isArray(field)
+      ? field.map(value => String(value).trim().toUpperCase()).filter(Boolean)
+      : [];
+    const blockType: LevelBlockType = data.blockType === 'OPTIONAL' || data.blockType === 'SKIPPABLE_WITH_BRIDGE'
+      ? data.blockType
+      : 'REQUIRED';
+    return [{
+      ...emptyLevelBlock(id, index),
+      title: typeof data.title === 'string' ? data.title : '',
+      description: typeof data.description === 'string' ? data.description : '',
+      learningObjectives: Array.isArray(data.learningObjectives)
+        ? data.learningObjectives.map(String).map(value => value.trim()).filter(Boolean)
+        : [],
+      estimatedMinutes: Math.max(0, Number(data.estimatedMinutes) || 0),
+      difficulty: typeof data.difficulty === 'string' ? data.difficulty : '',
+      blockType,
+      prerequisiteBlockIds: stringList(data.prerequisiteBlockIds),
+      nextBlockId: typeof data.nextBlockId === 'string' ? data.nextBlockId.trim().toUpperCase() : '',
+      skipTargetBlockId: typeof data.skipTargetBlockId === 'string' ? data.skipTargetBlockId.trim().toUpperCase() : '',
+      bridgeTitle: typeof data.bridgeTitle === 'string' ? data.bridgeTitle : '',
+      bridgeSummary: typeof data.bridgeSummary === 'string' ? data.bridgeSummary : '',
+      order: Number.isFinite(Number(data.order)) ? Number(data.order) : index
+    }];
+  }).sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+};
+
+const validateLevelBlocks = (blocks: LevelBlockConfig[]): string | null => {
+  const ids = new Set(blocks.map(block => block.id));
+  const ordered = [...blocks].sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+  if (ids.size !== blocks.length) return 'Ідентифікатори блоків мають бути унікальними.';
+  for (const block of blocks) {
+    if (block.blockType === 'SKIPPABLE_WITH_BRIDGE' && !block.bridgeSummary.trim()) {
+      return `Для блока ${block.id} потрібно заповнити пояснення переходу.`;
+    }
+    const references = [...block.prerequisiteBlockIds, block.nextBlockId, block.skipTargetBlockId].filter(Boolean);
+    const missing = references.find(id => !ids.has(id));
+    if (missing) return `Блок ${block.id} посилається на відсутній блок ${missing}.`;
+    if (block.prerequisiteBlockIds.includes(block.id) || block.nextBlockId === block.id || block.skipTargetBlockId === block.id) {
+      return `Блок ${block.id} не може посилатися сам на себе.`;
+    }
+    if (block.skipTargetBlockId) {
+      const index = ordered.findIndex(candidate => candidate.id === block.id);
+      const immediateNext = ordered[index + 1]?.id ?? '';
+      if (block.skipTargetBlockId !== immediateNext) {
+        return `Блок ${block.id}: перехід після пропуску має вести до наступного блока ${immediateNext || '—'}. Для складних відгалужень потрібен окремий маршрут.`;
+      }
+    }
+  }
+  const edges = new Map(blocks.map(block => [block.id, [block.nextBlockId, block.skipTargetBlockId].filter(Boolean)]));
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  const hasCycle = (id: string): boolean => {
+    if (visiting.has(id)) return true;
+    if (visited.has(id)) return false;
+    visiting.add(id);
+    if ((edges.get(id) ?? []).some(hasCycle)) return true;
+    visiting.delete(id);
+    visited.add(id);
+    return false;
+  };
+  if (blocks.some(block => hasCycle(block.id))) {
+    return 'Переходи між блоками утворюють цикл. Послідовність має завершуватися.';
+  }
+  return null;
+};
 
 const MAX_LEVEL_LITERATURE_SOURCES = 4;
 
@@ -231,6 +337,9 @@ export default function NoesisConstructor({
   const [quizName, setQuizName] = useState(() => getStorageItem('noesis_quiz_name', ''));
   const [author, setAuthor] = useState(() => getStorageItem('noesis_author', ''));
   const [levelDescription, setLevelDescription] = useState(() => getStorageItem('noesis_level_description', ''));
+  const [levelBlocks, setLevelBlocks] = useState<LevelBlockConfig[]>([]);
+  const [minimumCoveragePercent, setMinimumCoveragePercent] = useState(60);
+  const [minimumSelectedBlocks, setMinimumSelectedBlocks] = useState(2);
   const [levelRecommendedLiterature, setLevelRecommendedLiterature] = useState<LiteratureSource[]>([]);
   const [isLevelLiteratureLoading, setIsLevelLiteratureLoading] = useState(false);
   const [isLevelLiteratureSaving, setIsLevelLiteratureSaving] = useState(false);
@@ -252,6 +361,23 @@ export default function NoesisConstructor({
     if (setSharedBlockIdentifier) setSharedBlockIdentifier(val);
     setLocalBlockIdentifier(val);
     setStorageItem('noesis_block', val);
+  };
+
+  const normalizedBlockIdentifier = blockIdentifier.trim().toUpperCase();
+  const currentLevelBlock = useMemo(
+    () => levelBlocks.find(block => block.id === normalizedBlockIdentifier)
+      ?? emptyLevelBlock(normalizedBlockIdentifier, levelBlocks.length),
+    [levelBlocks, normalizedBlockIdentifier]
+  );
+  const updateCurrentLevelBlock = (patch: Partial<LevelBlockConfig>) => {
+    if (!normalizedBlockIdentifier) return;
+    setLevelBlocks(current => {
+      const existingIndex = current.findIndex(block => block.id === normalizedBlockIdentifier);
+      if (existingIndex < 0) {
+        return [...current, { ...emptyLevelBlock(normalizedBlockIdentifier, current.length), ...patch }];
+      }
+      return current.map((block, index) => index === existingIndex ? { ...block, ...patch } : block);
+    });
   };
 
   const [questionIdName, setQuestionIdName] = useState<string>(() => getStorageItem('noesis_question_id_name', ''));
@@ -1420,6 +1546,9 @@ export default function NoesisConstructor({
           );
           setAuthor(typeof levelData.author === 'string' ? levelData.author : '');
           setLevelDescription(typeof levelData.description === 'string' ? levelData.description : '');
+          setLevelBlocks(parseLevelBlocks(levelData.blocks));
+          setMinimumCoveragePercent(Math.min(100, Math.max(1, Number(levelData.minimumCoveragePercent) || 60)));
+          setMinimumSelectedBlocks(Math.max(1, Number(levelData.minimumSelectedBlocks) || 2));
           if (
             levelData.subscriptionTier === 'free' ||
             levelData.subscriptionTier === 'plus' ||
@@ -1432,6 +1561,9 @@ export default function NoesisConstructor({
           setQuizName('');
           setAuthor('');
           setLevelDescription('');
+          setLevelBlocks([]);
+          setMinimumCoveragePercent(60);
+          setMinimumSelectedBlocks(2);
           setSubscriptionTier('free');
         }
 
@@ -1496,6 +1628,39 @@ export default function NoesisConstructor({
     } catch (error) {
       console.error('Failed to save level recommended literature', error);
       triggerToast('Не вдалося зберегти джерела рівня.', 'error');
+    } finally {
+      setIsLevelLiteratureSaving(false);
+    }
+  };
+
+  const handleSaveLevelSettings = async () => {
+    if (!dbInstance) {
+      triggerToast('Спочатку підключіть Firebase.', 'error');
+      return;
+    }
+    const blockValidationError = validateLevelBlocks(levelBlocks);
+    if (blockValidationError) {
+      triggerToast(blockValidationError, 'error');
+      return;
+    }
+    try {
+      setIsLevelLiteratureSaving(true);
+      await setDoc(doc(dbInstance, resolvedCategory, String(level)), {
+        levelNumber: Number(level),
+        subscriptionTier: subscriptionTier || 'free',
+        presentationMode: levelPresentationMode,
+        name: quizName.trim(),
+        author: author.trim(),
+        description: levelDescription.trim(),
+        blocks: levelBlocks,
+        minimumCoveragePercent,
+        minimumSelectedBlocks
+      }, { merge: true });
+      triggerToast(`Налаштування рівня ${level} збережено.`, 'success');
+      onRefreshExplorer();
+    } catch (error) {
+      console.error('Failed to save level settings', error);
+      triggerToast('Не вдалося зберегти налаштування рівня.', 'error');
     } finally {
       setIsLevelLiteratureSaving(false);
     }
@@ -1661,6 +1826,11 @@ export default function NoesisConstructor({
 
       const normalizedLevelLiterature = validateLevelLiterature();
       if (!normalizedLevelLiterature) return;
+      const blockValidationError = validateLevelBlocks(levelBlocks);
+      if (blockValidationError) {
+        triggerToast(blockValidationError, 'error');
+        return;
+      }
 
       if (questionType === 'SINGLE_CHOICE' || questionType === 'MULTIPLE_CHOICE') {
         const nonEmp = options.filter(o => o.value && o.value.trim() !== '');
@@ -1686,6 +1856,9 @@ export default function NoesisConstructor({
               levelNumber: Number(level),
               subscriptionTier: subscriptionTier || 'free',
               presentationMode: levelPresentationMode,
+              blocks: levelBlocks,
+              minimumCoveragePercent,
+              minimumSelectedBlocks,
               status: 'UNLOCKED',
               questionCount: 1,
               recommendedLiterature: normalizedLevelLiterature,
@@ -1698,6 +1871,9 @@ export default function NoesisConstructor({
               ...(!alreadyExists ? { questionCount: increment(1) } : {}),
               subscriptionTier: subscriptionTier || 'free',
               presentationMode: levelPresentationMode,
+              blocks: levelBlocks,
+              minimumCoveragePercent,
+              minimumSelectedBlocks,
               name: quizName.trim(),
               author: author.trim(),
               description: levelDescription.trim(),
@@ -3687,6 +3863,181 @@ export default function NoesisConstructor({
               <p className="text-[10px] leading-relaxed text-slate-400">
                 Типово використовується QUESTION_GRID. GUIDED_SEQUENCE приховує список і відкриває рівень через вступний екран.
               </p>
+            </div>
+
+            <div className="sm:col-span-2 border-t border-slate-200 pt-3 flex flex-col gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                    Налаштування блока {normalizedBlockIdentifier || '—'}
+                  </div>
+                  <p className="text-[10px] text-slate-400">Без конфігурації блок залишається обов’язковим.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveLevelSettings()}
+                    disabled={isLevelLiteratureSaving}
+                    className="inline-flex items-center gap-1 rounded-lg bg-slate-800 px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-slate-700 disabled:opacity-50"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    Зберегти рівень
+                  </button>
+                  {levelBlocks.some(block => block.id === normalizedBlockIdentifier) && (
+                    <button
+                      type="button"
+                      title="Видалити конфігурацію блока"
+                      onClick={() => setLevelBlocks(current => current.filter(block => block.id !== normalizedBlockIdentifier))}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
+                  Тип блока
+                  <select
+                    value={currentLevelBlock.blockType}
+                    disabled={!normalizedBlockIdentifier}
+                    onChange={event => updateCurrentLevelBlock({ blockType: event.target.value as LevelBlockType })}
+                    className="bg-white border border-slate-200 px-2.5 py-2 rounded-lg text-xs"
+                  >
+                    <option value="REQUIRED">REQUIRED · обов’язковий</option>
+                    <option value="OPTIONAL">OPTIONAL · можна вимкнути</option>
+                    <option value="SKIPPABLE_WITH_BRIDGE">SKIPPABLE_WITH_BRIDGE · пропуск із поясненням</option>
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
+                  Назва блока
+                  <input
+                    value={currentLevelBlock.title}
+                    disabled={!normalizedBlockIdentifier}
+                    onChange={event => updateCurrentLevelBlock({ title: event.target.value })}
+                    className="bg-white border border-slate-200 px-2.5 py-2 rounded-lg text-xs"
+                    placeholder="Географія Фермопіл"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
+                  Тривалість, хв
+                  <input
+                    type="number"
+                    min="0"
+                    value={currentLevelBlock.estimatedMinutes}
+                    disabled={!normalizedBlockIdentifier}
+                    onChange={event => updateCurrentLevelBlock({ estimatedMinutes: Math.max(0, Number(event.target.value) || 0) })}
+                    className="bg-white border border-slate-200 px-2.5 py-2 rounded-lg text-xs"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
+                  Складність
+                  <select
+                    value={currentLevelBlock.difficulty}
+                    disabled={!normalizedBlockIdentifier}
+                    onChange={event => updateCurrentLevelBlock({ difficulty: event.target.value })}
+                    className="bg-white border border-slate-200 px-2.5 py-2 rounded-lg text-xs"
+                  >
+                    <option value="">Не вказано</option>
+                    <option value="EASY">Легкий</option>
+                    <option value="MEDIUM">Середній</option>
+                    <option value="HARD">Складний</option>
+                  </select>
+                </label>
+              </div>
+
+              <textarea
+                rows={2}
+                value={currentLevelBlock.description}
+                disabled={!normalizedBlockIdentifier}
+                onChange={event => updateCurrentLevelBlock({ description: event.target.value })}
+                className="bg-white border border-slate-200 px-2.5 py-2 rounded-lg text-xs resize-y"
+                placeholder="Що охоплює блок і що користувач пропустить"
+              />
+              <textarea
+                rows={2}
+                value={currentLevelBlock.learningObjectives.join('\n')}
+                disabled={!normalizedBlockIdentifier}
+                onChange={event => updateCurrentLevelBlock({ learningObjectives: event.target.value.split('\n').map(value => value.trim()).filter(Boolean) })}
+                className="bg-white border border-slate-200 px-2.5 py-2 rounded-lg text-xs resize-y"
+                placeholder="Навчальні цілі — по одній у кожному рядку"
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
+                  Передумови (через кому)
+                  <input
+                    value={currentLevelBlock.prerequisiteBlockIds.join(', ')}
+                    disabled={!normalizedBlockIdentifier}
+                    onChange={event => updateCurrentLevelBlock({ prerequisiteBlockIds: event.target.value.split(',').map(value => value.trim().toUpperCase()).filter(Boolean) })}
+                    className="bg-white border border-slate-200 px-2.5 py-2 rounded-lg text-xs"
+                    placeholder="A, B"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
+                  Наступний блок
+                  <input
+                    value={currentLevelBlock.nextBlockId}
+                    disabled={!normalizedBlockIdentifier}
+                    onChange={event => updateCurrentLevelBlock({ nextBlockId: event.target.value.trim().toUpperCase() })}
+                    className="bg-white border border-slate-200 px-2.5 py-2 rounded-lg text-xs"
+                    placeholder="C"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
+                  Перехід після пропуску
+                  <input
+                    value={currentLevelBlock.skipTargetBlockId}
+                    disabled={!normalizedBlockIdentifier || currentLevelBlock.blockType === 'REQUIRED'}
+                    onChange={event => updateCurrentLevelBlock({ skipTargetBlockId: event.target.value.trim().toUpperCase() })}
+                    className="bg-white border border-slate-200 px-2.5 py-2 rounded-lg text-xs disabled:bg-slate-100"
+                    placeholder="C"
+                  />
+                </label>
+              </div>
+
+              {currentLevelBlock.blockType === 'SKIPPABLE_WITH_BRIDGE' && (
+                <div className="grid grid-cols-1 gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                  <input
+                    value={currentLevelBlock.bridgeTitle}
+                    onChange={event => updateCurrentLevelBlock({ bridgeTitle: event.target.value })}
+                    className="bg-white border border-blue-200 px-2.5 py-2 rounded-lg text-xs"
+                    placeholder="Заголовок пояснення перед переходом"
+                  />
+                  <textarea
+                    rows={3}
+                    value={currentLevelBlock.bridgeSummary}
+                    onChange={event => updateCurrentLevelBlock({ bridgeSummary: event.target.value })}
+                    className="bg-white border border-blue-200 px-2.5 py-2 rounded-lg text-xs resize-y"
+                    placeholder="Короткий авторський контекст, необхідний для розуміння наступних блоків"
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 max-w-md">
+                <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
+                  Мінімальне покриття, %
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={minimumCoveragePercent}
+                    onChange={event => setMinimumCoveragePercent(Math.min(100, Math.max(1, Number(event.target.value) || 60)))}
+                    className="bg-white border border-slate-200 px-2.5 py-2 rounded-lg text-xs"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
+                  Мінімум активних блоків
+                  <input
+                    type="number"
+                    min="1"
+                    value={minimumSelectedBlocks}
+                    onChange={event => setMinimumSelectedBlocks(Math.max(1, Number(event.target.value) || 2))}
+                    className="bg-white border border-slate-200 px-2.5 py-2 rounded-lg text-xs"
+                  />
+                </label>
+              </div>
             </div>
           </div>
 
