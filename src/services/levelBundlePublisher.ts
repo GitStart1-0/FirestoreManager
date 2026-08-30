@@ -23,6 +23,7 @@ import {
 const BUNDLE_SCHEMA_VERSION = 1;
 const MAX_BUNDLE_BYTES = 8 * 1024 * 1024;
 const SAFE_LEVEL_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const SUBSCRIPTION_TIERS = new Set(['free', 'plus', 'expert']);
 
 export interface PublishLevelBundleInput {
   db: Firestore;
@@ -55,6 +56,7 @@ export async function publishLevelBundle({
   }
 
   const sourceLevelRef = doc(db, expectedResolvedCategory, levelId);
+  const sourceLevelSnapshot = await getDoc(sourceLevelRef);
   const questionSnapshot = await getDocs(collection(sourceLevelRef, 'questions'));
   const questions = questionSnapshot.docs
     .sort(compareQuestionDocuments)
@@ -69,6 +71,9 @@ export async function publishLevelBundle({
 
   const targetLevelRef = doc(db, category, levelId);
   const targetLevelSnapshot = await getDoc(targetLevelRef);
+  const subscriptionTier = normalizeSubscriptionTier(
+    sourceLevelSnapshot.data()?.subscriptionTier ?? targetLevelSnapshot.data()?.subscriptionTier
+  );
   const previousManifest = targetLevelSnapshot.data()?.publishedBundles?.[normalizedLang] as
     | Partial<LevelBundleManifest>
     | undefined;
@@ -104,6 +109,7 @@ export async function publishLevelBundle({
       category,
       levelId,
       lang: normalizedLang,
+      subscriptionTier,
       sha256: checksum
     }
   });
@@ -117,10 +123,14 @@ export async function publishLevelBundle({
     byteSize: bytes.byteLength,
     lang: normalizedLang
   };
+  if (sourceLevelRef.path !== targetLevelRef.path) {
+    await setDoc(sourceLevelRef, { subscriptionTier }, { merge: true });
+  }
   await setDoc(
     targetLevelRef,
     {
       levelNumber: Number(levelId) || levelId,
+      subscriptionTier,
       publishedBundles: {
         [normalizedLang]: {
           ...manifest,
@@ -132,6 +142,14 @@ export async function publishLevelBundle({
   );
 
   return { ...manifest, resolvedCategory: expectedResolvedCategory };
+}
+
+function normalizeSubscriptionTier(value: unknown): string {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : 'free';
+  if (!SUBSCRIPTION_TIERS.has(normalized)) {
+    throw new Error(`Непідтримуваний рівень підписки "${String(value)}".`);
+  }
+  return normalized;
 }
 
 function validateBundleIdentity(
