@@ -336,6 +336,8 @@ export default function NoesisConstructor({
   });
   const [quizName, setQuizName] = useState(() => getStorageItem('noesis_quiz_name', ''));
   const [author, setAuthor] = useState(() => getStorageItem('noesis_author', ''));
+  const [issueMonth, setIssueMonth] = useState('');
+  const [levelQuote, setLevelQuote] = useState('');
   const [levelDescription, setLevelDescription] = useState(() => getStorageItem('noesis_level_description', ''));
   const [levelBlocks, setLevelBlocks] = useState<LevelBlockConfig[]>([]);
   const [minimumCoveragePercent, setMinimumCoveragePercent] = useState(60);
@@ -1544,6 +1546,8 @@ export default function NoesisConstructor({
                   ? levelData.title
                   : ''
           );
+          setIssueMonth(typeof levelData.issueMonth === 'string' ? levelData.issueMonth : '');
+          setLevelQuote(typeof levelData.quote === 'string' ? levelData.quote : '');
           setAuthor(typeof levelData.author === 'string' ? levelData.author : '');
           setLevelDescription(typeof levelData.description === 'string' ? levelData.description : '');
           setLevelBlocks(parseLevelBlocks(levelData.blocks));
@@ -1559,6 +1563,8 @@ export default function NoesisConstructor({
         } else {
           setLevelPresentationMode('QUESTION_GRID');
           setQuizName('');
+          setIssueMonth('');
+          setLevelQuote('');
           setAuthor('');
           setLevelDescription('');
           setLevelBlocks([]);
@@ -1633,7 +1639,25 @@ export default function NoesisConstructor({
     }
   };
 
+  const validateLevelIssue = () => {
+    if (!dbInstance || isLevelLiteratureLoading || loadedLevelLiteraturePath !== levelDocPath || levelLiteratureLoadError) {
+      triggerToast('Підключіть Firebase і дочекайтеся завантаження вибраного рівня.', 'error');
+      return false;
+    }
+    if (quizCategory === 'noesis' && issueMonth && !/^[1-9][0-9]{3}-(0[1-9]|1[0-2])$/.test(issueMonth)) {
+      triggerToast('Вкажіть місяць випуску у форматі РРРР-ММ.', 'error');
+      return false;
+    }
+    if (quizCategory === 'noesis' && levelQuote.trim().length > 1000) {
+      triggerToast('Скоротіть цитату до 1000 символів.', 'error');
+      return false;
+    }
+    return true;
+  };
+
   const handleSaveLevelSettings = async () => {
+    if (!validateLevelIssue()) return;
+
     if (!dbInstance) {
       triggerToast('Спочатку підключіть Firebase.', 'error');
       return;
@@ -1649,6 +1673,7 @@ export default function NoesisConstructor({
         levelNumber: Number(level),
         subscriptionTier: subscriptionTier || 'free',
         presentationMode: levelPresentationMode,
+        ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim() } : {}),
         name: quizName.trim(),
         author: author.trim(),
         description: levelDescription.trim(),
@@ -1668,6 +1693,8 @@ export default function NoesisConstructor({
 
   // Save changes to Database using Transaction (Section 16)
   const handleSaveToDatabase = async () => {
+    if (!validateLevelIssue()) return;
+
     if (!dbInstance) {
       triggerToast('No active database client specified! Setup / Connect first.', 'error');
       return;
@@ -1809,6 +1836,7 @@ export default function NoesisConstructor({
 
     // --- STEP 2: SAVE MAIN QUESTION ONLY ---
     const handleSaveQuestion = async () => {
+      if (!validateLevelIssue()) return;
       // Main validations
       if (!calculatedQuestionId) {
         triggerToast('Не вдалося сформувати ID питання!', 'error');
@@ -1856,6 +1884,7 @@ export default function NoesisConstructor({
               levelNumber: Number(level),
               subscriptionTier: subscriptionTier || 'free',
               presentationMode: levelPresentationMode,
+              ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim() } : {}),
               blocks: levelBlocks,
               minimumCoveragePercent,
               minimumSelectedBlocks,
@@ -1871,6 +1900,7 @@ export default function NoesisConstructor({
               ...(!alreadyExists ? { questionCount: increment(1) } : {}),
               subscriptionTier: subscriptionTier || 'free',
               presentationMode: levelPresentationMode,
+              ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim() } : {}),
               blocks: levelBlocks,
               minimumCoveragePercent,
               minimumSelectedBlocks,
@@ -3864,6 +3894,23 @@ export default function NoesisConstructor({
                 Типово використовується QUESTION_GRID. GUIDED_SEQUENCE приховує список і відкриває рівень через вступний екран.
               </p>
             </div>
+
+            {quizCategory === 'noesis' && (
+              <fieldset disabled={isLevelLiteratureLoading || isLevelLiteratureSaving || loadedLevelLiteraturePath !== levelDocPath || Boolean(levelLiteratureLoadError)} className="sm:col-span-2 rounded-xl border border-amber-200 bg-amber-50/40 p-4 flex flex-col gap-3 disabled:opacity-50">
+                <legend className="px-1 text-xs font-bold text-slate-700">Ноезис · Читацький щоденник</legend>
+                <p className="text-xs text-slate-500">Назва твору та автор беруться з полів рівня нижче. Ці дані зберігаються в документі рівня, над списком питань.</p>
+                <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+                  Місяць випуску
+                  <input type="month" min="1000-01" max="9999-12" value={issueMonth} onChange={e => setIssueMonth(e.target.value)} className="rounded-lg border border-slate-200 bg-white p-2 text-sm" />
+                </label>
+                <p className="text-xs text-slate-500">Необов’язкова позначка випуску. Без неї показується номер рівня. Доступ визначають прогрес і тариф; місяць не планує автоматичну публікацію.</p>
+                <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+                  Цитата для картки випуску
+                  <textarea rows={3} maxLength={1000} value={levelQuote} onChange={e => setLevelQuote(e.target.value)} placeholder="Цитата з твору або короткий уривок" className="rounded-lg border border-slate-200 bg-white p-2 text-sm" />
+                </label>
+                <button type="button" onClick={() => void handleSaveLevelSettings()} className="self-start rounded-lg bg-slate-800 px-3 py-2 text-xs font-bold text-white">Зберегти дані випуску</button>
+              </fieldset>
+            )}
 
             <div className="sm:col-span-2 border-t border-slate-200 pt-3 flex flex-col gap-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
