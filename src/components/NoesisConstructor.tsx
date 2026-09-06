@@ -46,6 +46,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { LevelPublishPanel } from './LevelPublishPanel';
+import { LevelCardFields, parseLevelCard } from './LevelCardFields';
 import {
   isNativeTournamentQuestionType,
   resolveTournamentQuestionType,
@@ -338,6 +339,7 @@ export default function NoesisConstructor({
   const [author, setAuthor] = useState(() => getStorageItem('noesis_author', ''));
   const [issueMonth, setIssueMonth] = useState('');
   const [levelQuote, setLevelQuote] = useState('');
+  const [levelCard, setLevelCard] = useState(() => parseLevelCard(null));
   const [levelDescription, setLevelDescription] = useState(() => getStorageItem('noesis_level_description', ''));
   const [levelBlocks, setLevelBlocks] = useState<LevelBlockConfig[]>([]);
   const [minimumCoveragePercent, setMinimumCoveragePercent] = useState(60);
@@ -1546,6 +1548,7 @@ export default function NoesisConstructor({
                   ? levelData.title
                   : ''
           );
+          setLevelCard(parseLevelCard(levelData.levelCard));
           setIssueMonth(typeof levelData.issueMonth === 'string' ? levelData.issueMonth : '');
           setLevelQuote(typeof levelData.quote === 'string' ? levelData.quote : '');
           setAuthor(typeof levelData.author === 'string' ? levelData.author : '');
@@ -1563,6 +1566,7 @@ export default function NoesisConstructor({
         } else {
           setLevelPresentationMode('QUESTION_GRID');
           setQuizName('');
+          setLevelCard(parseLevelCard(null));
           setIssueMonth('');
           setLevelQuote('');
           setAuthor('');
@@ -1674,6 +1678,7 @@ export default function NoesisConstructor({
         subscriptionTier: subscriptionTier || 'free',
         presentationMode: levelPresentationMode,
         ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim() } : {}),
+        ...(quizCategory === 'erudite' ? { levelCard } : {}),
         name: quizName.trim(),
         author: author.trim(),
         description: levelDescription.trim(),
@@ -1885,6 +1890,7 @@ export default function NoesisConstructor({
               subscriptionTier: subscriptionTier || 'free',
               presentationMode: levelPresentationMode,
               ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim() } : {}),
+              ...(quizCategory === 'erudite' ? { levelCard } : {}),
               blocks: levelBlocks,
               minimumCoveragePercent,
               minimumSelectedBlocks,
@@ -1901,6 +1907,7 @@ export default function NoesisConstructor({
               subscriptionTier: subscriptionTier || 'free',
               presentationMode: levelPresentationMode,
               ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim() } : {}),
+              ...(quizCategory === 'erudite' ? { levelCard } : {}),
               blocks: levelBlocks,
               minimumCoveragePercent,
               minimumSelectedBlocks,
@@ -3894,6 +3901,12 @@ export default function NoesisConstructor({
                 Типово використовується QUESTION_GRID. GUIDED_SEQUENCE приховує список і відкриває рівень через вступний екран.
               </p>
             </div>
+
+            {quizCategory === 'erudite' && (
+              <LevelCardFields value={levelCard} onChange={setLevelCard}
+                disabled={isLevelLiteratureLoading || isLevelLiteratureSaving || loadedLevelLiteraturePath !== levelDocPath || Boolean(levelLiteratureLoadError)}
+                onSave={() => void handleSaveLevelSettings()} />
+            )}
 
             {quizCategory === 'noesis' && (
               <fieldset disabled={isLevelLiteratureLoading || isLevelLiteratureSaving || loadedLevelLiteraturePath !== levelDocPath || Boolean(levelLiteratureLoadError)} className="sm:col-span-2 rounded-xl border border-amber-200 bg-amber-50/40 p-4 flex flex-col gap-3 disabled:opacity-50">
