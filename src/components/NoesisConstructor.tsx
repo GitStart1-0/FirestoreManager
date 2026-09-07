@@ -106,6 +106,7 @@ interface NoesisConstructorProps {
 interface LiteratureSource {
   name: string;
   link: string;
+  author?: string;
 }
 
 type LevelPresentationMode = 'QUESTION_GRID' | 'GUIDED_SEQUENCE';
@@ -225,7 +226,8 @@ const parseLiteratureSources = (value: unknown): LiteratureSource[] => {
     .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
     .map(item => ({
       name: typeof item.name === 'string' ? item.name : '',
-      link: typeof item.link === 'string' ? item.link : ''
+      link: typeof item.link === 'string' ? item.link : '',
+      author: typeof item.author === 'string' ? item.author : ''
     }))
     .slice(0, MAX_LEVEL_LITERATURE_SOURCES);
 };
@@ -1603,7 +1605,7 @@ export default function NoesisConstructor({
 
   const validateLevelLiterature = (): LiteratureSource[] | null => {
     const normalized = levelRecommendedLiterature
-      .map(source => ({ name: source.name.trim(), link: source.link.trim() }))
+      .map(source => ({ name: source.name.trim(), link: source.link.trim(), author: source.author?.trim() || '' }))
       .filter(source => source.name || source.link);
 
     if (normalized.some(source => !source.name || !source.link)) {
@@ -4226,7 +4228,7 @@ export default function NoesisConstructor({
               )}
 
               {levelRecommendedLiterature.map((source, index) => (
-                <div key={index} className="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-white p-2.5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)_36px] md:items-center">
+                <div key={index} className="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-white p-2.5 md:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.4fr)_36px] md:items-center">
                   <input
                     type="text"
                     value={source.name}
@@ -4234,6 +4236,17 @@ export default function NoesisConstructor({
                       itemIndex === index ? { ...item, name: event.target.value } : item
                     )))}
                     placeholder={`Назва джерела ${index + 1}`}
+                    disabled={isLevelLiteratureLoading || isLevelLiteratureSaving}
+                    className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs focus:border-amber-400 focus:bg-white focus:outline-none disabled:opacity-60"
+                  />
+                  <input
+                    type="text"
+                    value={source.author || ''}
+                    onChange={event => setLevelRecommendedLiterature(current => current.map((item, itemIndex) => (
+                      itemIndex === index ? { ...item, author: event.target.value } : item
+                    )))}
+                    placeholder="Автор / автори"
+                    aria-label={`Автори джерела ${index + 1}`}
                     disabled={isLevelLiteratureLoading || isLevelLiteratureSaving}
                     className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs focus:border-amber-400 focus:bg-white focus:outline-none disabled:opacity-60"
                   />
