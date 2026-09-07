@@ -216,7 +216,7 @@ const validateLevelBlocks = (blocks: LevelBlockConfig[]): string | null => {
   return null;
 };
 
-const MAX_LEVEL_LITERATURE_SOURCES = 4;
+const MAX_LEVEL_LITERATURE_SOURCES = 50;
 
 const parseLiteratureSources = (value: unknown): LiteratureSource[] => {
   if (!Array.isArray(value)) return [];
@@ -338,6 +338,8 @@ export default function NoesisConstructor({
   const [quizName, setQuizName] = useState(() => getStorageItem('noesis_quiz_name', ''));
   const [author, setAuthor] = useState(() => getStorageItem('noesis_author', ''));
   const [issueMonth, setIssueMonth] = useState('');
+  const [issueKind, setIssueKind] = useState('LEGACY');
+  const [issueProblem, setIssueProblem] = useState('');
   const [levelQuote, setLevelQuote] = useState('');
   const [levelCard, setLevelCard] = useState(() => parseLevelCard(null));
   const [levelDescription, setLevelDescription] = useState(() => getStorageItem('noesis_level_description', ''));
@@ -1550,6 +1552,8 @@ export default function NoesisConstructor({
           );
           setLevelCard(parseLevelCard(levelData.levelCard));
           setIssueMonth(typeof levelData.issueMonth === 'string' ? levelData.issueMonth : '');
+          setIssueKind(['BOOK', 'ARTICLES'].includes(levelData.issueKind) ? levelData.issueKind : 'LEGACY');
+          setIssueProblem(typeof levelData.problem === 'string' ? levelData.problem : '');
           setLevelQuote(typeof levelData.quote === 'string' ? levelData.quote : '');
           setAuthor(typeof levelData.author === 'string' ? levelData.author : '');
           setLevelDescription(typeof levelData.description === 'string' ? levelData.description : '');
@@ -1568,6 +1572,8 @@ export default function NoesisConstructor({
           setQuizName('');
           setLevelCard(parseLevelCard(null));
           setIssueMonth('');
+          setIssueKind('LEGACY');
+          setIssueProblem('');
           setLevelQuote('');
           setAuthor('');
           setLevelDescription('');
@@ -1643,7 +1649,7 @@ export default function NoesisConstructor({
     }
   };
 
-  const validateLevelIssue = () => {
+  const validateLevelIssue = async () => {
     if (!dbInstance || isLevelLiteratureLoading || loadedLevelLiteraturePath !== levelDocPath || levelLiteratureLoadError) {
       triggerToast('Підключіть Firebase і дочекайтеся завантаження вибраного рівня.', 'error');
       return false;
@@ -1651,6 +1657,22 @@ export default function NoesisConstructor({
     if (quizCategory === 'noesis' && issueMonth && !/^[1-9][0-9]{3}-(0[1-9]|1[0-2])$/.test(issueMonth)) {
       triggerToast('Вкажіть місяць випуску у форматі РРРР-ММ.', 'error');
       return false;
+    }
+    if (quizCategory === 'noesis' && issueKind !== 'LEGACY') {
+      if (!issueMonth || !quizName.trim() || (issueKind === 'ARTICLES' && !issueProblem.trim())) {
+        triggerToast('Вкажіть місяць, назву випуску та проблему для вікторини за статтями.', 'error');
+        return false;
+      }
+      try {
+        const siblings = await getDocs(query(collection(dbInstance, resolvedCategory), where('issueMonth', '==', issueMonth)));
+        if (siblings.docs.some(item => item.id !== String(level) && item.data().issueKind === issueKind)) {
+          triggerToast('Для цього місяця вже є вікторина вибраного формату. Відкрийте її для редагування.', 'error');
+          return false;
+        }
+      } catch {
+        triggerToast('Не вдалося перевірити випуски місяця. Спробуйте ще раз.', 'error');
+        return false;
+      }
     }
     if (quizCategory === 'noesis' && levelQuote.trim().length > 1000) {
       triggerToast('Скоротіть цитату до 1000 символів.', 'error');
@@ -1660,7 +1682,7 @@ export default function NoesisConstructor({
   };
 
   const handleSaveLevelSettings = async () => {
-    if (!validateLevelIssue()) return;
+    if (!(await validateLevelIssue())) return;
 
     if (!dbInstance) {
       triggerToast('Спочатку підключіть Firebase.', 'error');
@@ -1677,7 +1699,7 @@ export default function NoesisConstructor({
         levelNumber: Number(level),
         subscriptionTier: subscriptionTier || 'free',
         presentationMode: levelPresentationMode,
-        ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim() } : {}),
+        ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim(), issueKind, problem: issueProblem.trim() } : {}),
         ...(quizCategory === 'erudite' ? { levelCard } : {}),
         name: quizName.trim(),
         author: author.trim(),
@@ -1698,7 +1720,7 @@ export default function NoesisConstructor({
 
   // Save changes to Database using Transaction (Section 16)
   const handleSaveToDatabase = async () => {
-    if (!validateLevelIssue()) return;
+    if (!(await validateLevelIssue())) return;
 
     if (!dbInstance) {
       triggerToast('No active database client specified! Setup / Connect first.', 'error');
@@ -1841,7 +1863,7 @@ export default function NoesisConstructor({
 
     // --- STEP 2: SAVE MAIN QUESTION ONLY ---
     const handleSaveQuestion = async () => {
-      if (!validateLevelIssue()) return;
+      if (!(await validateLevelIssue())) return;
       // Main validations
       if (!calculatedQuestionId) {
         triggerToast('Не вдалося сформувати ID питання!', 'error');
@@ -1889,7 +1911,7 @@ export default function NoesisConstructor({
               levelNumber: Number(level),
               subscriptionTier: subscriptionTier || 'free',
               presentationMode: levelPresentationMode,
-              ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim() } : {}),
+              ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim(), issueKind, problem: issueProblem.trim() } : {}),
               ...(quizCategory === 'erudite' ? { levelCard } : {}),
               blocks: levelBlocks,
               minimumCoveragePercent,
@@ -1906,7 +1928,7 @@ export default function NoesisConstructor({
               ...(!alreadyExists ? { questionCount: increment(1) } : {}),
               subscriptionTier: subscriptionTier || 'free',
               presentationMode: levelPresentationMode,
-              ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim() } : {}),
+              ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim(), issueKind, problem: issueProblem.trim() } : {}),
               ...(quizCategory === 'erudite' ? { levelCard } : {}),
               blocks: levelBlocks,
               minimumCoveragePercent,
@@ -3910,13 +3932,25 @@ export default function NoesisConstructor({
 
             {quizCategory === 'noesis' && (
               <fieldset disabled={isLevelLiteratureLoading || isLevelLiteratureSaving || loadedLevelLiteraturePath !== levelDocPath || Boolean(levelLiteratureLoadError)} className="sm:col-span-2 rounded-xl border border-amber-200 bg-amber-50/40 p-4 flex flex-col gap-3 disabled:opacity-50">
-                <legend className="px-1 text-xs font-bold text-slate-700">Ноезис · Читацький щоденник</legend>
-                <p className="text-xs text-slate-500">Назва твору та автор беруться з полів рівня нижче. Ці дані зберігаються в документі рівня, над списком питань.</p>
+                <legend className="px-1 text-xs font-bold text-slate-700">Ноезис · Дві вікторини місяця</legend>
+                <p className="text-xs text-slate-500">Для місяця створіть два окремі рівні: за книгою та за статтями. Назву й автора книги задавайте в полях нижче; джерела статей — у списку літератури рівня. Кожна вікторина має власні питання та результат.</p>
+                <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+                  Формат вікторини
+                  <select value={issueKind} onChange={e => setIssueKind(e.target.value)} className="rounded-lg border border-slate-200 bg-white p-2 text-sm">
+                    <option value="LEGACY">Попередній формат (послідовні рівні)</option>
+                    <option value="BOOK">Книжкова вікторина — книгу обирає аудиторія</option>
+                    <option value="ARTICLES">Проблемна вікторина — статті добирає сервіс</option>
+                  </select>
+                </label>
+                {issueKind === 'ARTICLES' && <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+                  Проблема або запитання випуску
+                  <textarea value={issueProblem} onChange={e => setIssueProblem(e.target.value)} rows={2} maxLength={500} className="rounded-lg border border-slate-200 bg-white p-2 text-sm" />
+                </label>}
                 <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
                   Місяць випуску
                   <input type="month" min="1000-01" max="9999-12" value={issueMonth} onChange={e => setIssueMonth(e.target.value)} className="rounded-lg border border-slate-200 bg-white p-2 text-sm" />
                 </label>
-                <p className="text-xs text-slate-500">Необов’язкова позначка випуску. Без неї показується номер рівня. Доступ визначають прогрес і тариф; місяць не планує автоматичну публікацію.</p>
+                <p className="text-xs text-slate-500">Нові формати відкриваються незалежно один від одного з урахуванням тарифу. Місяць не є дедлайном і не планує автоматичну публікацію. Попередні випуски залишаються доступними.</p>
                 <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
                   Цитата для картки випуску
                   <textarea rows={3} maxLength={1000} value={levelQuote} onChange={e => setLevelQuote(e.target.value)} placeholder="Цитата з твору або короткий уривок" className="rounded-lg border border-slate-200 bg-white p-2 text-sm" />
