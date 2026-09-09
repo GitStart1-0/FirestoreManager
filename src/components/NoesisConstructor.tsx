@@ -341,6 +341,7 @@ export default function NoesisConstructor({
   const [author, setAuthor] = useState(() => getStorageItem('noesis_author', ''));
   const [issueMonth, setIssueMonth] = useState('');
   const [issueKind, setIssueKind] = useState('LEGACY');
+  const [journalNumber, setJournalNumber] = useState(0);
   const [issueProblem, setIssueProblem] = useState('');
   const [levelQuote, setLevelQuote] = useState('');
   const [levelCard, setLevelCard] = useState(() => parseLevelCard(null));
@@ -1555,6 +1556,7 @@ export default function NoesisConstructor({
           setLevelCard(parseLevelCard(levelData.levelCard));
           setIssueMonth(typeof levelData.issueMonth === 'string' ? levelData.issueMonth : '');
           setIssueKind(['BOOK', 'ARTICLES'].includes(levelData.issueKind) ? levelData.issueKind : 'LEGACY');
+          setJournalNumber(Number.isSafeInteger(levelData.journalNumber) ? levelData.journalNumber : 0);
           setIssueProblem(typeof levelData.problem === 'string' ? levelData.problem : '');
           setLevelQuote(typeof levelData.quote === 'string' ? levelData.quote : '');
           setAuthor(typeof levelData.author === 'string' ? levelData.author : '');
@@ -1575,6 +1577,7 @@ export default function NoesisConstructor({
           setLevelCard(parseLevelCard(null));
           setIssueMonth('');
           setIssueKind('LEGACY');
+          setJournalNumber(0);
           setIssueProblem('');
           setLevelQuote('');
           setAuthor('');
@@ -1660,14 +1663,18 @@ export default function NoesisConstructor({
       triggerToast('Вкажіть місяць випуску у форматі РРРР-ММ.', 'error');
       return false;
     }
-    if (quizCategory === 'noesis' && issueKind !== 'LEGACY') {
+    if (quizCategory === 'noesis' && (!Number.isSafeInteger(journalNumber) || Math.abs(journalNumber) > 2147483647)) {
+      triggerToast('Номер у журналі має бути цілим числом.', 'error');
+      return false;
+    }
+    if (quizCategory === 'noesis' && issueKind !== 'LEGACY' && journalNumber >= 0) {
       if (!issueMonth || !quizName.trim() || (issueKind === 'ARTICLES' && !issueProblem.trim())) {
         triggerToast('Вкажіть місяць, назву випуску та проблему для вікторини за статтями.', 'error');
         return false;
       }
       try {
         const siblings = await getDocs(query(collection(dbInstance, resolvedCategory), where('issueMonth', '==', issueMonth)));
-        if (siblings.docs.some(item => item.id !== String(level) && item.data().issueKind === issueKind)) {
+        if (siblings.docs.some(item => item.id !== String(level) && item.data().issueKind === issueKind && !(item.data().journalNumber < 0))) {
           triggerToast('Для цього місяця вже є вікторина вибраного формату. Відкрийте її для редагування.', 'error');
           return false;
         }
@@ -1701,7 +1708,7 @@ export default function NoesisConstructor({
         levelNumber: Number(level),
         subscriptionTier: subscriptionTier || 'free',
         presentationMode: levelPresentationMode,
-        ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim(), issueKind, problem: issueProblem.trim() } : {}),
+        ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim(), issueKind, journalNumber, problem: issueProblem.trim() } : {}),
         ...(quizCategory === 'erudite' ? { levelCard } : {}),
         name: quizName.trim(),
         author: author.trim(),
@@ -1913,7 +1920,7 @@ export default function NoesisConstructor({
               levelNumber: Number(level),
               subscriptionTier: subscriptionTier || 'free',
               presentationMode: levelPresentationMode,
-              ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim(), issueKind, problem: issueProblem.trim() } : {}),
+              ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim(), issueKind, journalNumber, problem: issueProblem.trim() } : {}),
               ...(quizCategory === 'erudite' ? { levelCard } : {}),
               blocks: levelBlocks,
               minimumCoveragePercent,
@@ -1930,7 +1937,7 @@ export default function NoesisConstructor({
               ...(!alreadyExists ? { questionCount: increment(1) } : {}),
               subscriptionTier: subscriptionTier || 'free',
               presentationMode: levelPresentationMode,
-              ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim(), issueKind, problem: issueProblem.trim() } : {}),
+              ...(quizCategory === 'noesis' ? { issueMonth: issueMonth.trim(), quote: levelQuote.trim(), issueKind, journalNumber, problem: issueProblem.trim() } : {}),
               ...(quizCategory === 'erudite' ? { levelCard } : {}),
               blocks: levelBlocks,
               minimumCoveragePercent,
@@ -3944,6 +3951,11 @@ export default function NoesisConstructor({
                     <option value="ARTICLES">Проблемна вікторина — статті добирає сервіс</option>
                   </select>
                 </label>
+                <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+                  Номер у журналі (−1, −2… — приховані; 0 — без номера)
+                  <input type="number" step="1" value={journalNumber} onChange={e => setJournalNumber(Number(e.target.value))} className="rounded-lg border border-slate-200 bg-white p-2 text-sm" />
+                </label>
+                <p className="text-xs text-slate-500">Від’ємний номер приховує випуск у продовженні списку до спеціального жесту. Внутрішній ID і результати не змінюються. Це не обмеження доступу до даних.</p>
                 {issueKind === 'ARTICLES' && <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
                   Проблема або запитання випуску
                   <textarea value={issueProblem} onChange={e => setIssueProblem(e.target.value)} rows={2} maxLength={500} className="rounded-lg border border-slate-200 bg-white p-2 text-sm" />

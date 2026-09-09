@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "projectId": "studio-2985968119-3ca85",
+  "collection": "noesis",
+  "existing": [
+    {
+      "id": "1",
+      "expectedName": "Іліада та Одіссея",
+      "patch": {
+        "journalNumber": -1
+      }
+    },
+    {
+      "id": "2",
+      "expectedName": "Міф і аргумент",
+      "patch": {
+        "journalNumber": -2
+      }
+    }
+  ],
+  "create": [
+    {
+      "levelNumber": 3,
+      "journalNumber": 1,
+      "author": "Майкл Поллан",
+      "status": "UNLOCKED",
+      "subscriptionTier": "free",
+      "questionCount": 0,
+      "name": "Постає світ. Подорож у свідомість",
+      "issueKind": "BOOK",
+      "issueMonth": "2026-09",
+      "problem": "Як досліджувати суб’єктивний досвід?",
+      "quote": "A World Appears: A Journey into Consciousness. Українська назва — редакційний переклад; офіційне українське видання не підтверджено.",
+      "recommendedLiterature": [
+        {
+          "name": "A World Appears: A Journey into Consciousness",
+          "author": "Michael Pollan",
+          "link": "https://www.penguinrandomhouse.com/books/646644/a-world-appears-by-michael-pollan/"
+        }
+      ]
+    },
+    {
+      "levelNumber": 4,
+      "journalNumber": 2,
+      "author": "",
+      "status": "UNLOCKED",
+      "subscriptionTier": "free",
+      "questionCount": 0,
+      "name": "Наука без ученого?",
+      "issueKind": "ARTICLES",
+      "issueMonth": "2026-09",
+      "problem": "Коли результат автономного ШІ можна вважати науковим відкриттям?",
+      "quote": "Зіставте можливості автоматизації, перевірку доказів, різноманітність досліджень і межі автономності. Друга робота — препринт. Виявлені статистичні зв’язки не доводять причинності.",
+      "recommendedLiterature": [
+        {
+          "name": "Від ідеї до статті: автоматизація досліджень ШІ",
+          "author": "Lu та співавтори · Nature, 2026",
+          "link": "https://www.nature.com/articles/s41586-026-10265-5"
+        },
+        {
+          "name": "Більше автоматизації — менше видимості: приховані помилки ШІ-дослідників",
+          "author": "Ziming Luo, Atoosa Kasirzadeh, Nihar B. Shah · препринт, 2025",
+          "link": "https://arxiv.org/abs/2509.08713"
+        },
+        {
+          "name": "ШІ посилює вплив учених, але звужує фокус науки",
+          "author": "Hao та співавтори · Nature, 2026",
+          "link": "https://www.nature.com/articles/s41586-025-09922-y"
+        },
+        {
+          "name": "Ризики ШІ-дослідників: контроль перед автономністю",
+          "author": "Tang та співавтори · Nature Communications, 2025",
+          "link": "https://www.nature.com/articles/s41467-025-63913-1"
+        }
+      ]
+    },
+    {
+      "levelNumber": 5,
+      "journalNumber": 3,
+      "author": "Стів Рамірес",
+      "status": "UNLOCKED",
+      "subscriptionTier": "free",
+      "questionCount": 0,
+      "name": "Як змінити спогад",
+      "issueKind": "BOOK",
+      "issueMonth": "2026-10",
+      "problem": "Як мінливість спогадів впливає на наше розуміння себе?",
+      "quote": "How to Change a Memory: One Neuroscientist’s Quest to Alter the Past. Українська назва — редакційний переклад; офіційне українське видання не підтверджено.",
+      "recommendedLiterature": [
+        {
+          "name": "How to Change a Memory",
+          "author": "Steve Ramirez",
+          "link": "https://princetonuniversitypress.substack.com/p/how-to-change-a-memory"
+        }
+      ]
+    },
+    {
+      "levelNumber": 6,
+      "journalNumber": 4,
+      "author": "",
+      "status": "UNLOCKED",
+      "subscriptionTier": "free",
+      "questionCount": 0,
+      "name": "Повернути вимерле",
+      "issueKind": "ARTICLES",
+      "issueMonth": "2026-10",
+      "problem": "Чи означає створення схожої тварини повернення вимерлого виду — і кому це допомагає?",
+      "quote": "Порівняйте генетичну подібність, екологічну функцію й право вирішувати долю природи. Перший матеріал представляє позицію компанії-розробника; другий — експертний коментар. Доступ до повного тексту Nature Biotechnology може потребувати передплати.",
+      "recommendedLiterature": [
+        {
+          "name": "Повернення блакитної антилопи: обіцянка розробника",
+          "author": "Colossal Biosciences · матеріал компанії, 2026",
+          "link": "https://colossal.com/colossal-biosciences-bluebuck-de-extinction/"
+        },
+        {
+          "name": "Редагування генів псових: природоохоронна оцінка",
+          "author": "IUCN SSC Canid Specialist Group · експертний коментар, 2025",
+          "link": "https://www.canids.org/resources/CSG%20gene%20editing%20in%20wild%20canids.pdf"
+        },
+        {
+          "name": "Відродження вимерлих видів: суперечка про технології та екосистеми",
+          "author": "Michael Eisenstein · Nature Biotechnology, 2025",
+          "link": "https://www.nature.com/articles/s41587-025-02745-2"
+        },
+        {
+          "name": "Повернення жахливого вовка: природа, влада та корінні народи",
+          "author": "August D. Hoffman та співавтори · Ethnobiology Letters, 2026",
+          "link": "https://www.ojs.ethnobiology.org/index.php/ebl/article/download/1975/1111"
+        }
+      ]
+    },
+    {
+      "levelNumber": 7,
+      "journalNumber": 5,
+      "author": "Ліз Барнеу",
+      "status": "UNLOCKED",
+      "subscriptionTier": "free",
+      "questionCount": 0,
+      "name": "Приховані гості",
+      "issueKind": "BOOK",
+      "issueMonth": "2026-11",
+      "problem": "Що означає біологічна індивідуальність, коли тіло містить клітини іншого походження?",
+      "quote": "Hidden Guests: Migrating Cells and How the New Science of Microchimerism is Redefining Human Identity. Українська назва — редакційний переклад; офіційне українське видання не підтверджено.",
+      "recommendedLiterature": [
+        {
+          "name": "Hidden Guests",
+          "author": "Lise Barnéoud",
+          "link": "https://www.royalsociety.org/news/2026/06/shortlist-unveiled-for-royal-society-trivedi-science-book-prize-2026/"
+        }
+      ]
+    },
+    {
+      "levelNumber": 8,
+      "journalNumber": 6,
+      "author": "",
+      "status": "UNLOCKED",
+      "subscriptionTier": "free",
+      "questionCount": 0,
+      "name": "Охолодити планету штучно?",
+      "issueKind": "ARTICLES",
+      "issueMonth": "2026-11",
+      "problem": "Чи варто досліджувати штучне охолодження, поки немає згоди щодо права його застосовувати?",
+      "quote": "Розрізняйте моделювання, польові випробування й глобальне застосування. Потенційна користь залежить від сценарію порівняння; ризики можуть бути нерівномірними. Сонячна геоінженерія не замінює скорочення викидів. Конденсаційні сліди літаків не є доказом таємного розпилення.",
+      "recommendedLiterature": [
+        {
+          "name": "Чи можуть стратосферні аерозолі захистити Амазонію?",
+          "author": "Isobel M. Parry та співавтори · Earth System Dynamics, 2026",
+          "link": "https://esd.copernicus.org/articles/17/387/2026/"
+        },
+        {
+          "name": "Сонячна геоінженерія не замінює кліматичних дій",
+          "author": "UNEP · огляд, 2025",
+          "link": "https://www.unep.org/resources/emerging-issues/solar-radiation-modification-no-substitute-real-climate-action"
+        },
+        {
+          "name": "Від частинок до політики: технічні основи міждержавної координації",
+          "author": "Roby Yahav та співавтори · Stardust Labs / Columbia University · препринт, 2026",
+          "link": "https://arxiv.org/abs/2605.14947"
+        },
+        {
+          "name": "Сонячна геоінженерія: можливості, ризики та управління",
+          "author": "U.S. GAO · урядовий огляд, 2026",
+          "link": "https://www.gao.gov/products/gao-26-108837"
+        }
+      ]
+    }
+  ]
+}
