@@ -112,6 +112,17 @@ interface LiteratureSource {
 type LevelPresentationMode = 'QUESTION_GRID' | 'GUIDED_SEQUENCE';
 type LevelBlockType = 'REQUIRED' | 'OPTIONAL' | 'SKIPPABLE_WITH_BRIDGE';
 
+// The stored block ID remains A/B/...; Roman numerals are presentation only.
+const romanBlockNumber = (number: number): string => {
+  let remaining = Math.max(0, Math.floor(number));
+  return ([[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'],
+    [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'],
+    [5, 'V'], [4, 'IV'], [1, 'I']] as const).reduce((result, [value, numeral]) => {
+      while (remaining >= value) { result += numeral; remaining -= value; }
+      return result;
+    }, '');
+};
+
 interface LevelBlockConfig {
   id: string;
   title: string;
@@ -685,6 +696,7 @@ export default function NoesisConstructor({
 
   // Question Types enum
   const [questionType, setQuestionType] = useState<string>(() => getStorageItem('noesis_question_type', 'SINGLE_CHOICE'));
+  const [thematicDifficulty, setThematicDifficulty] = useState<'EASY' | 'HARD'>('EASY');
 
   useEffect(() => {
     setStorageItem('noesis_question_type', questionType);
@@ -1048,6 +1060,7 @@ export default function NoesisConstructor({
       
       const qType = questionData.type || 'SINGLE_CHOICE';
       setQuestionType(qType);
+      setThematicDifficulty(String(questionData.difficulty).toUpperCase() === 'HARD' ? 'HARD' : 'EASY');
       setQuestionText(questionData.question || '');
       setExplanation(questionData.explanation || '');
       
@@ -1339,6 +1352,9 @@ export default function NoesisConstructor({
       contentWarnings: contentPolicy.contentWarnings,
       contentTags: contentPolicy.contentTags
     };
+    if (quizCategory === 'erudite' && levelCard.style === 'THEMATIC') {
+      rawData.difficulty = thematicDifficulty;
+    }
 
     // Specific mapping per type
     if (questionType === 'SINGLE_CHOICE') {
@@ -1485,7 +1501,7 @@ export default function NoesisConstructor({
     comparisonCategories, comparisonStatements, textAnswer, fillInParts, 
     imageOptions, correctImageChoice, readingText1, readingText2, 
     readingCompQuestions, respondentsCount, countriesCount, surveyPeriod, researchCenter, sliders, tenFacts,
-    pairwiseObjects, pairwiseStatements, contentPolicy
+    pairwiseObjects, pairwiseStatements, contentPolicy, quizCategory, levelCard.style, thematicDifficulty
   ]);
 
   // Real-time generated Question ID
@@ -3977,7 +3993,7 @@ export default function NoesisConstructor({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                    Налаштування блока {normalizedBlockIdentifier || '—'}
+                    Налаштування блока {normalizedBlockIdentifier ? romanBlockNumber(levelBlocks.findIndex(block => block.id === normalizedBlockIdentifier) + 1 || normalizedBlockIdentifier.charCodeAt(0) - 64) : '—'} (ID {normalizedBlockIdentifier || '—'})
                   </div>
                   <p className="text-[10px] text-slate-400">Без конфігурації блок залишається обов’язковим.</p>
                 </div>
@@ -4055,13 +4071,15 @@ export default function NoesisConstructor({
                 </label>
               </div>
 
+              <p className="text-xs text-slate-500">Назва відображається в списку. Великий текст нижче зберігається в <code>blocks[].description</code> документа рівня; читач відкриває його натисканням на римський номер блока.</p>
               <textarea
-                rows={2}
+                rows={10}
+                maxLength={12000}
                 value={currentLevelBlock.description}
                 disabled={!normalizedBlockIdentifier}
                 onChange={event => updateCurrentLevelBlock({ description: event.target.value })}
                 className="bg-white border border-slate-200 px-2.5 py-2 rounded-lg text-xs resize-y"
-                placeholder="Що охоплює блок і що користувач пропустить"
+                placeholder="Розгорнутий вступ або пояснення блока — кілька абзаців"
               />
               <textarea
                 rows={2}
@@ -4331,12 +4349,23 @@ export default function NoesisConstructor({
               <input
                 type="text"
                 maxLength={2}
-                placeholder="A, B, C..."
+                placeholder="A, B, C... (на екрані I, II, III)"
                 value={blockIdentifier}
                 onChange={e => setBlockIdentifier(e.target.value)}
                 className="bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-bold focus:outline-none focus:ring-1 focus:ring-amber-500"
               />
             </div>
+
+            {quizCategory === 'erudite' && levelCard.style === 'THEMATIC' && (
+              <label className="flex flex-col gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Складність тематичного питання
+                <select value={thematicDifficulty} onChange={event => setThematicDifficulty(event.target.value as 'EASY' | 'HARD')}
+                  className="bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-bold">
+                  <option value="EASY">Easy · звичайна гра</option>
+                  <option value="HARD">Hard · Нова гра +</option>
+                </select>
+              </label>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Власний ярлик (Slug Text)</label>
