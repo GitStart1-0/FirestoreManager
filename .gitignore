@@ -7,3 +7,6 @@ tmp/
 *.log
 .env*
 !.env.example
+content-registry/generated/
+content-registry/external/**/*
+!content-registry/external/README.md

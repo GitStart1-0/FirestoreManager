@@ -44,3 +44,15 @@ Supported root categories and languages are centralized in
 3. The server validates tournament type, indices, source path and schema.
 4. Level bundles are immutable Storage artifacts with a SHA-256 checksum; only
    their manifest is merged into the Firestore level document.
+
+## Editorial registry boundary
+
+The optional editorial registry under `src/editorialRegistry` is independent of
+Firebase. Its builder reads local Mythos files and locally supplied external
+dataset snapshots. The HTTP service binds to loopback by default and accepts
+only `GET` requests. It cannot publish, update or delete Firestore documents.
+
+ChatGPT may use its OpenAPI search contract through a separately authenticated
+HTTPS gateway. Generated level JSON returns through the chat and enters the
+existing constructor import workflow. Production credentials must never be
+added to the registry process or gateway.

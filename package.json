@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "lint": "tsc --noEmit",
-    "inspect:db": "tsx inspectDb.ts"
+    "inspect:db": "tsx inspectDb.ts",
+    "registry:build": "tsx scripts/editorial-registry/build.ts",
+    "registry:serve": "tsx scripts/editorial-registry/server.ts",
+    "test:registry": "tsx --test src/editorialRegistry/*.test.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",
