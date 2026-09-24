@@ -12,7 +12,7 @@
     "inspect:db": "tsx inspectDb.ts",
     "registry:build": "tsx scripts/editorial-registry/build.ts",
     "registry:serve": "tsx scripts/editorial-registry/server.ts",
-    "test:registry": "tsx --test src/editorialRegistry/*.test.ts"
+    "test:registry": "tsx --test src/editorialRegistry/*.test.ts scripts/editorial-registry/*.test.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",

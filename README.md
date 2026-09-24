@@ -41,3 +41,22 @@ client cannot call a loopback address directly; expose this service only through
 an authenticated HTTPS gateway with the same read-only routes. Generated quiz
 JSON remains a chat/download artifact and is published separately through this
 manager's existing import workflow.
+
+### GPT Action deployment
+
+Public mode requires a Bearer key and remains read-only:
+
+```bash
+REGISTRY_HOST=0.0.0.0 REQUIRE_API_KEY=true REGISTRY_API_KEY=... npm run registry:serve
+```
+
+Build the registry, create a `mythos-registry-api-key` secret in a separate
+Google Cloud project, then run:
+
+```powershell
+./scripts/editorial-registry/deploy-cloud-run.ps1 -ProjectId YOUR_EDITORIAL_PROJECT
+```
+
+The deploy script refuses the production Firebase project. Configure the
+secret as a Bearer key in the GPT Action and import the deployed
+`/openapi.json`.
