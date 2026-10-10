@@ -4,6 +4,7 @@ import { Firestore, collection, limit, onSnapshot, orderBy, query, where } from 
 import { getFunctions, httpsCallable } from '../../lib/safeFunctions';
 import { CONTENT_CATEGORIES, CONTENT_LANGUAGES } from '../../domain/content/catalog';
 import { isLocalReadOnly } from '../../lib/writePolicy';
+import { prepareManagerCall } from '../../lib/managerAccess';
 
 export default function TournamentEventsPanel({ auth, db }: { auth?: Auth; db?: Firestore }) {
   const [allowed, setAllowed] = useState(false);
@@ -27,7 +28,8 @@ export default function TournamentEventsPanel({ auth, db }: { auth?: Auth; db?: 
       stop?.(); setAllowed(false); setEvents([]); setError('');
       if (!user) return;
       stop = onSnapshot(query(collection(db, 'tournamentEvents'), where('schemaVersion', '==', 1), orderBy('createdAt', 'desc'), limit(50)), snapshot => setEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() }))), e => setError(e.message));
-      httpsCallable<any, { canCreate: boolean }>(getFunctions(auth.app), 'getTournamentEventAccess')({}).then(result => { if (current === generation) setAllowed(result.data.canCreate && !isLocalReadOnly()); }).catch(e => { if (current === generation) setError(e.message); });
+      if (isLocalReadOnly()) return;
+      prepareManagerCall(auth).then(() => httpsCallable<any, { canCreate: boolean }>(getFunctions(auth.app), 'getTournamentEventAccess')({})).then(result => { if (current === generation) setAllowed(result.data.canCreate); }).catch(e => { if (current === generation) setError(e.message); });
     });
     return () => { generation++; stop?.(); unsubscribe(); };
   }, [auth, db]);
@@ -39,6 +41,7 @@ export default function TournamentEventsPanel({ auth, db }: { auth?: Auth; db?: 
     if (retry.current?.fingerprint !== fingerprint) retry.current = { fingerprint, requestId: crypto.randomUUID() };
     setBusy(true); setError('');
     try {
+      await prepareManagerCall(auth);
       await httpsCallable(getFunctions(auth.app), 'createTournamentEvent')({ ...payload, requestId: retry.current.requestId });
       setName(''); retry.current = undefined;
     } catch (e: any) { setError(e.message); } finally { setBusy(false); }

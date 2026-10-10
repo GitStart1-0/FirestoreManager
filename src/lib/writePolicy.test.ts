@@ -5,10 +5,9 @@ import { initializeApp, deleteApp } from 'firebase/app';
 import { getFirestore, doc, setDoc, deleteDoc, updateDoc, writeBatch, runTransaction } from './safeFirestore';
 import { uploadBytes } from './safeStorage';
 import { httpsCallable } from './safeFunctions';
-test('local and development constructors cannot write even with a production Firebase connection', () => {
-  for (const host of ['localhost', '127.0.0.1', '::1', '[::1]', '']) assert.equal(localReadOnly(host, false), true);
-  assert.equal(localReadOnly('192.168.1.20', true), true);
-  assert.equal(localReadOnly('aistudio.google.com', false), false);
+test('local hosts cannot write; cloud previews stay writable regardless of Vite development mode', () => {
+  for (const host of ['localhost', '127.0.0.1', '::1', '[::1]', '', '192.168.1.20', '10.1.2.3', '172.16.0.1', 'quiz.localhost', 'quiz.local']) assert.equal(localReadOnly(host), true);
+  for (const host of ['aistudio.google.com', 'example.run.app', 'example.scf.usercontent.goog']) assert.equal(localReadOnly(host), false);
 });
 test('every existing publishing path rejects locally before sending a request', async () => {
   const app = initializeApp({ projectId: 'local-readonly-test', apiKey: 'test', appId: 'test' }, 'local-readonly-test');

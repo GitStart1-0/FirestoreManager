@@ -20,13 +20,16 @@ Production Firestore rules are maintained and deployed from
 
 ## Official tournament events
 
-The local constructor is read-only for remote data. Development builds and
-loopback hosts block Firestore writes, batches, transactions, Storage uploads
+The local constructor is read-only for remote data. Loopback and private LAN
+hosts block Firestore writes, batches, transactions, Storage uploads
 and mutating callable functions, even for an administrator. Preparing and
 exporting JSON and reading existing data remain available. The actual manager
 is [the AI Studio app](https://aistudio.google.com/apps/523551a3-865a-4b1b-9f76-2065bcd6015c).
-Its write permissions have not been granted by this change. Pushing this
-repository does not verify or update that app's deployed code.
+Its write permissions have not been granted by this change. AI Studio may run
+Vite in development mode, so `import.meta.env.DEV` must not identify a local
+machine. This client restriction prevents accidental writes; it does not
+replace server authorization or App Check. Pull repository updates in AI Studio
+to apply the shared code there.
 
 In the deployed manager, choose a Firebase connection, sign in with Google Login and open **Турнірні події** once this code has been transferred there.
 The panel creates official events through `createTournamentEvent`; it never writes
