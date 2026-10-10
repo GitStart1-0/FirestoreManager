@@ -49,7 +49,7 @@ export default function TournamentEventsPanel({ auth, db }: { auth?: Auth; db?: 
   const field = 'border rounded-lg p-2 w-full bg-white';
   return <section className="max-w-4xl space-y-4">
     <h2 className="text-xl font-bold">Офіційні турнірні події</h2>
-    <p>Реєстрація відкрита для всіх до дедлайну. Сервер розподіляє учасників на кімнати з однаковими питаннями й формує спільний рейтинг. Survival: 10 гравців у кімнаті, 50 раундів, спільні місця при нічиїй. Classic: до 100 гравців.</p>
+    <p>Реєстрація відкрита для всіх до дедлайну. Сервер розподіляє учасників на кімнати до 10 гравців з однаковими питаннями й формує спільний рейтинг. Survival: 50 раундів, спільні місця при нічиїй. Classic: рейтинг за балами.</p>
     {isLocalReadOnly() ? <p>Локально доступний лише перегляд подій. Створення виконується через менеджер в AI Studio після налаштування його доступу.</p> : !auth?.currentUser ? <p>Виберіть Firebase-проєкт і увійдіть через Google Login.</p> : !allowed && <p>Для створення потрібне право tournamentEvents у constructorAccess вашого UID або право адміністратора. Публікація питань сама по собі цього права не надає.</p>}
     {error && <p role="alert" className="text-red-700 whitespace-pre-wrap">{error}</p>}
     <form onSubmit={create} className="grid sm:grid-cols-2 gap-3 border rounded-xl p-4">
