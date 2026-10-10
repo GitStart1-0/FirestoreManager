@@ -2,6 +2,7 @@ import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 import { managerAppChecks } from './appCheckRegistry';
+import { managerAppCheckSiteKey } from './managerAppCheckConfig';
 import {
   getFirestore,
   Firestore,
@@ -66,12 +67,13 @@ export function getFirebaseInstance(connectionId: string, config: FirebaseWebCon
     app = matchedApp;
   } else {
     app = initializeApp(config, appName);
-    if (config.appCheckSiteKey) {
+  }
+  const appCheckSiteKey = managerAppCheckSiteKey(config.appId, globalThis.location?.hostname ?? '', config.appCheckSiteKey);
+  if (appCheckSiteKey && !managerAppChecks.has(app.name)) {
       managerAppChecks.set(app.name, initializeAppCheck(app, {
-        provider: new ReCaptchaEnterpriseProvider(config.appCheckSiteKey),
+        provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),
         isTokenAutoRefreshEnabled: true,
       }));
-    }
   }
 
   // Support custom firestoreDatabaseId if specified

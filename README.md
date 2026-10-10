@@ -48,6 +48,12 @@ app in Firebase App Check using reCAPTCHA Enterprise and add its public site key
 as `appCheckSiteKey` in the connection's Firebase JSON. The manager initializes
 App Check and refreshes tokens automatically. No enforcement bypass was added.
 
+The current Noesis AI Studio preview domain is already registered. Its public
+site key is supplied automatically from `src/lib/managerAppCheckConfig.json`
+for that Firebase app and exact host, including existing saved connections.
+Local hosts receive no default key and remain read-only. If AI Studio changes
+the preview domain, update both the reCAPTCHA allowed domains and this file.
+
 ## Read-only editorial registry for ChatGPT
 
 The editorial registry indexes local Mythos quiz files and optional local
