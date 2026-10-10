@@ -78,6 +78,7 @@ import {
 } from './features/tournaments/publishTournamentQuestion';
 
 const NoesisConstructor = lazy(() => import('./components/NoesisConstructor'));
+const TournamentEventsPanel = lazy(() => import('./features/tournaments/TournamentEventsPanel'));
 const QuestionVisualForm = lazy(async () => {
   const module = await import('./features/questionWorkspace/QuestionVisualForm');
   return { default: module.QuestionVisualForm };
@@ -514,7 +515,7 @@ export default function App() {
   } | null>(null);
 
   // Active Screen Tab
-  const [activeTab, setActiveTab] = useState<'explorer' | 'constructor' | 'import' | 'credentials'>('constructor');
+  const [activeTab, setActiveTab] = useState<'explorer' | 'constructor' | 'import' | 'credentials' | 'tournaments'>('constructor');
 
   // Load Request from Explorer to Constructor
   const [loadRequest, setLoadRequest] = useState<{
@@ -728,6 +729,7 @@ export default function App() {
         'messagingSenderId',
         'appId',
         'measurementId',
+        'appCheckSiteKey',
         'databaseURL',
         'firestoreDatabaseId'
       ];
@@ -770,7 +772,8 @@ export default function App() {
           appId: parsedConfig.appId,
           storageBucket: parsedConfig.storageBucket || `${parsedConfig.projectId}.firebasestorage.app`,
           messagingSenderId: parsedConfig.messagingSenderId || '',
-          measurementId: parsedConfig.measurementId || ''
+          measurementId: parsedConfig.measurementId || '',
+          appCheckSiteKey: typeof parsedConfig.appCheckSiteKey === 'string' ? parsedConfig.appCheckSiteKey.trim() : ''
         },
         isLocal: false,
         createdAt: Date.now()
@@ -1959,6 +1962,7 @@ export default function App() {
 
           {/* Tab Navigation buttons */}
           <nav className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 overflow-x-auto scrollbar-none [scrollbar-width:none] shrink-0 w-full xl:w-auto -mx-1 px-1 sm:mx-0 sm:px-0">
+            <button onClick={() => setActiveTab('tournaments')} className="px-3 py-1.5 text-xs font-bold rounded-lg shrink-0">🏆 Турнірні події</button>
             <button
               onClick={() => setActiveTab('constructor')}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition shrink-0 whitespace-nowrap cursor-pointer ${
@@ -2321,6 +2325,7 @@ export default function App() {
 
         {/* Outer body for main tab outputs */}
         <main className="flex-1 bg-slate-50 p-3 sm:p-6 flex flex-col gap-4 sm:gap-6 overflow-y-auto w-full min-w-0">
+          {activeTab === 'tournaments' && <Suspense fallback={<LazyPanelFallback />}><TournamentEventsPanel key={activeConnId} auth={authInstance} db={dbInstance} /></Suspense>}
           
           {/* TAB 0: NOESIS CONSTRUCTOR VIEW */}
           {activeTab === 'constructor' && (

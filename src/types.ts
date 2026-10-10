@@ -7,6 +7,7 @@ export interface FirebaseWebConfig {
   storageBucket?: string;
   messagingSenderId?: string;
   measurementId?: string;
+  appCheckSiteKey?: string;
 }
 
 export interface SavedConnection {

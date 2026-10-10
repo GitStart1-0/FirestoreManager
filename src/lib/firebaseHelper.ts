@@ -1,5 +1,6 @@
 import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 import {
   getFirestore,
   Firestore,
@@ -64,6 +65,12 @@ export function getFirebaseInstance(connectionId: string, config: FirebaseWebCon
     app = matchedApp;
   } else {
     app = initializeApp(config, appName);
+    if (config.appCheckSiteKey) {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaEnterpriseProvider(config.appCheckSiteKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+    }
   }
 
   // Support custom firestoreDatabaseId if specified
