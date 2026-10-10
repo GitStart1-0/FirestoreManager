@@ -4,6 +4,7 @@
  */
 
 import React, { lazy, Suspense, useState, useEffect } from 'react';
+import { isLocalReadOnly } from './lib/writePolicy';
 import {
   collection,
   doc,
@@ -16,7 +17,7 @@ import {
   Timestamp,
   getFirestore,
   runTransaction
-} from 'firebase/firestore';
+} from './lib/safeFirestore';
 import {
   signInWithPopup,
   GoogleAuthProvider,
@@ -2325,6 +2326,7 @@ export default function App() {
 
         {/* Outer body for main tab outputs */}
         <main className="flex-1 bg-slate-50 p-3 sm:p-6 flex flex-col gap-4 sm:gap-6 overflow-y-auto w-full min-w-0">
+          {isLocalReadOnly() && <p role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950">Локальний конструктор: запис у БД та публікацію заблоковано. Підготуйте й експортуйте JSON; публікація виконується через менеджер в AI Studio.</p>}
           {activeTab === 'tournaments' && <Suspense fallback={<LazyPanelFallback />}><TournamentEventsPanel key={activeConnId} auth={authInstance} db={dbInstance} /></Suspense>}
           
           {/* TAB 0: NOESIS CONSTRUCTOR VIEW */}

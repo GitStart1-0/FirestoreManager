@@ -22,9 +22,9 @@ import {
   isTechnicalCausalNodeType,
   normalizeCausalGraphQuestion
 } from '../types/causalGraph';
-import { Firestore } from 'firebase/firestore';
+import { Firestore } from '../lib/safeFirestore';
 import { Auth } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from '../lib/safeFirestore';
 import { ContentPolicyFields } from './ContentPolicyFields';
 import { 
   GitFork, 

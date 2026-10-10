@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Auth, onAuthStateChanged } from 'firebase/auth';
-import { Firestore, collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { Firestore, collection, limit, onSnapshot, orderBy, query, where } from '../../lib/safeFirestore';
+import { getFunctions, httpsCallable } from '../../lib/safeFunctions';
 import { CONTENT_CATEGORIES, CONTENT_LANGUAGES } from '../../domain/content/catalog';
+import { isLocalReadOnly } from '../../lib/writePolicy';
 
 export default function TournamentEventsPanel({ auth, db }: { auth?: Auth; db?: Firestore }) {
   const [allowed, setAllowed] = useState(false);
@@ -26,7 +27,7 @@ export default function TournamentEventsPanel({ auth, db }: { auth?: Auth; db?: 
       stop?.(); setAllowed(false); setEvents([]); setError('');
       if (!user) return;
       stop = onSnapshot(query(collection(db, 'tournamentEvents'), where('schemaVersion', '==', 1), orderBy('createdAt', 'desc'), limit(50)), snapshot => setEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() }))), e => setError(e.message));
-      httpsCallable<any, { canCreate: boolean }>(getFunctions(auth.app), 'getTournamentEventAccess')({}).then(result => { if (current === generation) setAllowed(result.data.canCreate); }).catch(e => { if (current === generation) setError(e.message); });
+      httpsCallable<any, { canCreate: boolean }>(getFunctions(auth.app), 'getTournamentEventAccess')({}).then(result => { if (current === generation) setAllowed(result.data.canCreate && !isLocalReadOnly()); }).catch(e => { if (current === generation) setError(e.message); });
     });
     return () => { generation++; stop?.(); unsubscribe(); };
   }, [auth, db]);
@@ -46,7 +47,7 @@ export default function TournamentEventsPanel({ auth, db }: { auth?: Auth; db?: 
   return <section className="max-w-4xl space-y-4">
     <h2 className="text-xl font-bold">Офіційні турнірні події</h2>
     <p>Реєстрація відкрита для всіх до дедлайну. Сервер розподіляє учасників на кімнати з однаковими питаннями й формує спільний рейтинг. Survival: 10 гравців у кімнаті, 50 раундів, спільні місця при нічиїй. Classic: до 100 гравців.</p>
-    {!auth?.currentUser ? <p>Виберіть Firebase-проєкт і увійдіть через Google Login.</p> : !allowed && <p>Для створення потрібне право tournamentEvents у constructorAccess вашого UID або право адміністратора. Публікація питань сама по собі цього права не надає.</p>}
+    {isLocalReadOnly() ? <p>Локально доступний лише перегляд подій. Створення виконується через менеджер в AI Studio після налаштування його доступу.</p> : !auth?.currentUser ? <p>Виберіть Firebase-проєкт і увійдіть через Google Login.</p> : !allowed && <p>Для створення потрібне право tournamentEvents у constructorAccess вашого UID або право адміністратора. Публікація питань сама по собі цього права не надає.</p>}
     {error && <p role="alert" className="text-red-700 whitespace-pre-wrap">{error}</p>}
     <form onSubmit={create} className="grid sm:grid-cols-2 gap-3 border rounded-xl p-4">
       <label>Назва<input required maxLength={80} className={field} value={name} onChange={e => setName(e.target.value)} /></label>

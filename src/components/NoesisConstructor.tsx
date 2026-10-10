@@ -13,7 +13,7 @@ import {
   where,
   deleteDoc,
   serverTimestamp
-} from 'firebase/firestore';
+} from '../lib/safeFirestore';
 import { Auth } from 'firebase/auth';
 import { SavedConnection } from '../types';
 import { 

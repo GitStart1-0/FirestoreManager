@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Auth } from 'firebase/auth';
-import { Firestore } from 'firebase/firestore';
+import { Firestore } from '../../lib/safeFirestore';
 import { Binary } from 'lucide-react';
 import { LogicalInferenceConstructor } from '../../components/LogicalInferenceConstructor';
 

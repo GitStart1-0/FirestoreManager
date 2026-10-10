@@ -7,8 +7,8 @@ import {
   getDocs,
   serverTimestamp,
   setDoc
-} from 'firebase/firestore';
-import { getStorage, ref, uploadBytes } from 'firebase/storage';
+} from '../lib/safeFirestore';
+import { getStorage, ref, uploadBytes } from '../lib/safeStorage';
 import {
   LevelBundleManifest,
   LevelBundlePublishResult,

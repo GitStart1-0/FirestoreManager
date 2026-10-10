@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Auth } from 'firebase/auth';
-import { Firestore } from 'firebase/firestore';
+import { Firestore } from '../lib/safeFirestore';
 import { Package, UploadCloud, CheckCircle2, AlertCircle } from 'lucide-react';
 import { publishLevelBundle } from '../services/levelBundlePublisher';
 import { LevelBundlePublishResult } from '../types/levelBundle';

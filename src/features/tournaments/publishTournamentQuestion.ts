@@ -1,5 +1,5 @@
 import { Auth } from 'firebase/auth';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getFunctions, httpsCallable } from '../../lib/safeFunctions';
 import {
   TOURNAMENT_MAX_OPTION_LENGTH,
   type TournamentQuestionType

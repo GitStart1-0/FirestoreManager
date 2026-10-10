@@ -20,7 +20,15 @@ Production Firestore rules are maintained and deployed from
 
 ## Official tournament events
 
-Choose a Firebase connection, sign in with Google Login and open **Турнірні події**.
+The local constructor is read-only for remote data. Development builds and
+loopback hosts block Firestore writes, batches, transactions, Storage uploads
+and mutating callable functions, even for an administrator. Preparing and
+exporting JSON and reading existing data remain available. The actual manager
+is [the AI Studio app](https://aistudio.google.com/apps/523551a3-865a-4b1b-9f76-2065bcd6015c).
+Its write permissions have not been granted by this change. Pushing this
+repository does not verify or update that app's deployed code.
+
+In the deployed manager, choose a Firebase connection, sign in with Google Login and open **Турнірні події** once this code has been transferred there.
 The panel creates official events through `createTournamentEvent`; it never writes
 event documents directly. Specify a registration deadline and a start at least
 two minutes later. Participants register in the Android app and the server

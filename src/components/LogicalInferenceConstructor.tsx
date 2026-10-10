@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Auth } from 'firebase/auth';
-import { Firestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { Firestore, doc, getDoc, setDoc } from '../lib/safeFirestore';
 import {
   AlertTriangle,
   Binary,

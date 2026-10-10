@@ -18,7 +18,7 @@ import {
   getDocFromServer,
   DocumentData,
   QueryConstraint
-} from 'firebase/firestore';
+} from './safeFirestore';
 import { FirebaseWebConfig } from '../types';
 import localConfig from '../../firebase-applet-config.json';
 
