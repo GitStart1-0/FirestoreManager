@@ -28,7 +28,7 @@ export default function TournamentEventsPanel({ auth, db }: { auth?: Auth; db?: 
       const current = ++generation;
       stop?.(); setAllowed(false); setEvents([]); setError('');
       if (!user) return;
-      stop = onSnapshot(query(collection(db, 'tournamentEvents'), where('schemaVersion', '==', 1), orderBy('createdAt', 'desc'), limit(50)), snapshot => setEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() }))), e => setError(e.message));
+      stop = onSnapshot(query(collection(db, 'tournamentEvents'), where('schemaVersion', '==', 1), orderBy('createdAt', 'desc'), limit(50)), snapshot => { if (current === generation) setEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() }))); }, e => { if (current === generation) setError(e.message); });
       if (isLocalReadOnly()) return;
       prepareManagerCall(auth).then(() => httpsCallable<any, { canCreate: boolean }>(getFunctions(auth.app), 'getTournamentEventAccess')({})).then(result => { if (current === generation) setAllowed(result.data.canCreate); }).catch(e => { if (current === generation) setError(e.message); });
     });
@@ -50,7 +50,7 @@ export default function TournamentEventsPanel({ auth, db }: { auth?: Auth; db?: 
   }
   const field = 'border rounded-lg p-2 w-full bg-white';
   function edit(event: any) {
-    const localTime = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    const localTime = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 23);
     setEditing(event.id); setName(event.name); setMode(event.mode); setLanguage(event.language);
     setCategory(event.categories?.[0] || 'culture'); setCount(event.questionCount);
     setStart(localTime(event.scheduledStartTime.toDate())); setClose(localTime(event.registrationClosesAt.toDate()));
@@ -82,8 +82,8 @@ export default function TournamentEventsPanel({ auth, db }: { auth?: Auth; db?: 
       <label>Режим<select disabled={!!editing} className={field} value={mode} onChange={e => setMode(e.target.value)}><option>SURVIVAL</option><option>CLASSIC</option></select></label>
       <label>Мова<select disabled={!!editing} className={field} value={language} onChange={e => setLanguage(e.target.value)}>{CONTENT_LANGUAGES.map(v => <option key={v}>{v}</option>)}</select></label>
       <label>Категорія<select disabled={!!editing} className={field} value={category} onChange={e => setCategory(e.target.value)}>{CONTENT_CATEGORIES.map(v => <option key={v}>{v}</option>)}</select></label>
-      <label>Закриття реєстрації (місцевий час)<input required type="datetime-local" className={field} value={close} onChange={e => setClose(e.target.value)} /></label>
-      <label>Старт (місцевий час)<input required type="datetime-local" className={field} value={start} onChange={e => setStart(e.target.value)} /></label>
+      <label>Закриття реєстрації (місцевий час)<input required type="datetime-local" step="0.001" className={field} value={close} onChange={e => setClose(e.target.value)} /></label>
+      <label>Старт (місцевий час)<input required type="datetime-local" step="0.001" className={field} value={start} onChange={e => setStart(e.target.value)} /></label>
       {mode === 'CLASSIC' && <label>Кількість питань<input disabled={!!editing} type="number" min={1} max={50} className={field} value={count} onChange={e => setCount(Number(e.target.value))} /></label>}
       <button disabled={!allowed || busy} className="rounded-lg bg-amber-400 p-3 disabled:opacity-40">{busy ? 'Збереження…' : editing ? 'Зберегти зміни' : 'Створити й відкрити реєстрацію'}</button>
       <button type="button" onClick={exportJson} className="rounded-lg border p-3">Експортувати JSON</button>
