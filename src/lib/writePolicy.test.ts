@@ -22,6 +22,8 @@ test('every existing publishing path rejects locally before sending a request', 
     assert.throws(() => writeBatch(db), blocked);
     await assert.rejects(uploadBytes(null as any, new Uint8Array()), blocked);
     assert.throws(() => httpsCallable(null as any, 'createTournamentEvent'), blocked);
+    assert.throws(() => httpsCallable(null as any, 'updateTournamentEvent'), blocked);
+    assert.throws(() => httpsCallable(null as any, 'cancelTournamentEvent'), blocked);
     assert.throws(() => httpsCallable(null as any, 'publishTournamentQuestion'), blocked);
   } finally { await deleteApp(app); }
 });
