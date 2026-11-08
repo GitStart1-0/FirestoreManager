@@ -57,6 +57,13 @@ export async function publishLevelBundle({
 
   const sourceLevelRef = doc(db, expectedResolvedCategory, levelId);
   const sourceLevelSnapshot = await getDoc(sourceLevelRef);
+  const targetLevelRef = doc(db, category, levelId);
+  const targetLevelSnapshot = sourceLevelRef.path === targetLevelRef.path
+    ? sourceLevelSnapshot
+    : await getDoc(targetLevelRef);
+  if (sourceLevelSnapshot.data()?.questions !== undefined || targetLevelSnapshot.data()?.questions !== undefined) {
+    throw new Error('Перенесіть питання з публічного документа рівня до підколекції questions перед публікацією.');
+  }
   const questionSnapshot = await getDocs(collection(sourceLevelRef, 'questions'));
   const questions = questionSnapshot.docs
     .sort(compareQuestionDocuments)
@@ -69,8 +76,6 @@ export async function publishLevelBundle({
     throw new Error(`У рівні ${expectedResolvedCategory}/${levelId} немає питань мовою ${normalizedLang}.`);
   }
 
-  const targetLevelRef = doc(db, category, levelId);
-  const targetLevelSnapshot = await getDoc(targetLevelRef);
   const subscriptionTier = normalizeSubscriptionTier(
     sourceLevelSnapshot.data()?.subscriptionTier ?? targetLevelSnapshot.data()?.subscriptionTier
   );
